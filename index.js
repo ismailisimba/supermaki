@@ -1,8 +1,14 @@
 const express = require('express');
+const MDBS = require("./mydirtybs");
 const ws = require('ws');
+const bodyParser = require('body-parser');
 
+
+const mydirtybs = new MDBS();
 const app = express();
 const port = parseInt(process.env.PORT)|| 8080;
+
+const textParser = bodyParser.text({limit:"50mb"});
 
 
 
@@ -13,7 +19,17 @@ const serveStatic = require('serve-static');
 
 app.use(serveStatic('frontend', { index: ['index.html', 'index.htm'] }))
 
+
+
+
+
+
+
+
 app.get("/",()=>{});
+
+app.post("/checksource",textParser,mydirtybs.checksource);
+app.post("/login",textParser,mydirtybs.logIn);
 
 
 const wsServer = new ws.Server({ noServer: true });
