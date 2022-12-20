@@ -25,6 +25,11 @@ const setupForSignUp = (e)=>{
     document.getElementById("submit").value = "Sign Up";
 }
 
+const setupForLogIn = (e)=>{
+    document.querySelectorAll("#email")[0].remove();
+    document.getElementById("submit").value = "Login";
+}
+
 
 const addLogInNSignUpEvent = ()=>{
     document.getElementById("submit").addEventListener("click",checkLogInNSignUpEvent);
@@ -34,13 +39,13 @@ const checkLogInNSignUpEvent = (e)=>{
         e.stopPropagation();
         e.preventDefault();
         const val = e.target.value;
-        val==="Login"?logIn():signUp();
+        val==="Login"?first("login"):first("signup");
 }
 
-const logIn = async()=>{
+const first = async(route)=>{
         const usnum = document.getElementById("username").value;
         const uspass = document.getElementById("password").value;
-        const mykeys = {uspass,usnum};
+        const mykeys = (route==="login")?{uspass,usnum}:{uspass,usnum,"email":document.getElementById("email").value};
         const serve = await importAmod("server");
         const server = new serve.server();
         const allkey = document.querySelector('meta[name="defsource"]').content;
@@ -53,8 +58,15 @@ const logIn = async()=>{
                 if(s.source==="ok"){
                     server.startFetch(
                         JSON.stringify(mykeys),
-                        "/login",
+                        `/${route}`,
                         "POST",
+                        (r)=>{
+                            r=JSON.parse(r);
+                            if(r&&r.user==="isregistered"){
+                                alert("Please Log In!");
+                                setupForLogIn();
+                            }
+                        }
                     )
                 }else{
                     alert("There seems to be a security error. Please notify us at maudhuikidigitali@gmail.com")

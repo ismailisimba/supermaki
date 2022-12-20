@@ -30,6 +30,7 @@ app.get("/",()=>{});
 
 app.post("/checksource",textParser,mydirtybs.checksource);
 app.post("/login",textParser,mydirtybs.logIn);
+app.post("/signup",textParser,mydirtybs.signUp);
 
 
 const wsServer = new ws.Server({ noServer: true });

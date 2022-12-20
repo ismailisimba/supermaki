@@ -34,8 +34,8 @@ function decrypt (transitmessage, pass) {
     var salt = CryptoJS.lib.WordArray.random(128/8);
     
     var key = CryptoJS.PBKDF2(pass, salt, {
-        keySize: keySize/32,
-        iterations: iterations
+        keySize: 256/32,
+        iterations: 100
       });
   
     var iv = CryptoJS.lib.WordArray.random(128/8);
