@@ -17,6 +17,8 @@ body {
 
 /* style the container */
 .container {
+  margin: 0 auto;
+  max-width: 720px;
   position: relative;
   border-radius: 5px;
   background-color: #f2f2f2;
@@ -73,17 +75,19 @@ input[type=submit]:hover {
 /* Two-column layout */
 .col {
   float: left;
-  width: 100%;
+  width: 50%;
+  max-width: 369px;
   margin: auto;
   padding: 0 50px;
   margin-top: 6px;
 }
 
 /* Clear floats after the columns */
-.row:after {
-  content: "";
-  display: table;
-  clear: both;
+.row {
+  display: flex;
+  flex-flow: column;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 /* vertical line */
@@ -113,6 +117,8 @@ input[type=submit]:hover {
 
 /* bottom container */
 .bottom-container {
+  margin: 0 auto;
+  max-width: 720px;
   text-align: center;
   background-color: #666;
   border-radius: 0px 0px 4px 4px;
@@ -166,7 +172,7 @@ input[type=submit]:hover {
           <p>Or sign in manually:</p>
         </div>
 
-        <input type="text" name="username" placeholder="Username" id="username" required>
+        <input type="text" name="username" placeholder="Username OR Email" id="username" required>
         <input type="password" name="password" placeholder="Password" id="password" required>
         <input type="submit" value="Login" id="submit">
       </div>

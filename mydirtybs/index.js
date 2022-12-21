@@ -2,6 +2,8 @@ const crypt = require("../crypto");
 const crypto = new crypt();
 
 const {BigQuery} = require('@google-cloud/bigquery');
+const cookieMan = require("../cookieMan");
+const cookieManager = new cookieMan();
 const bigqueryClient = new BigQuery();
 
 
@@ -52,8 +54,29 @@ const checksource = async (req,res,next)=>{
 }
 
 const logIn = async (req,res,next)=>{
-    console.log(req.body);
-    res.send("Under Construction!")
+    const obj = JSON.parse(req.body);
+    const ans = {};
+    const userAvailability = await findUser(obj.usnum,obj.usnum);
+    if(userAvailability.rows[0] &&userAvailability.rows[0].passEncry||userAvailability.rows2[0] && userAvailability.rows2[0].passEncry){
+        ans["user"]="isregistered";
+        const passEncry = userAvailability.rows[0] && userAvailability.rows[0].passEncry ? userAvailability.rows[0].passEncry:userAvailability.rows2[0].passEncry;
+        ans["pass"] = crypto.decrypt(passEncry,obj.uspass);
+            if(ans.pass){
+                ans.pass = JSON.parse(ans.pass);
+                if(ans.pass.usnum===obj.usnum||ans.pass.email===obj.usnum){
+                    ans.pass = await cookieManager.startSession("login",req,obj);
+                    res.cookie('makiCookie',ans.pass, { maxAge: 28800000, httpOnly: true,sameSite:"none",secure:true,overwrite: true });
+                    ans["stat"]="in";
+                }else{
+                    ans.pass = "failed";
+                }
+            }else{
+                ans.pass ="failed";
+            }
+    }else{
+        ans["user"]="isnotregistered";
+    }
+    res.send(ans)
 }
 
 const signUp = async (req,res,next)=>{

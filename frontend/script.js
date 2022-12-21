@@ -21,12 +21,13 @@ const setupForSignUp = (e)=>{
     const mom = document.getElementById("formmom");
     const be4This = document.getElementById("password");
     mom.insertBefore(extraBox,be4This);
-    document.getElementById("signupbutt").remove();
+    document.getElementById("signupbutt").style.display="none";
     document.getElementById("submit").value = "Sign Up";
 }
 
 const setupForLogIn = (e)=>{
     document.querySelectorAll("#email")[0].remove();
+    document.getElementById("signupbutt").style.display="block";
     document.getElementById("submit").value = "Login";
 }
 
@@ -62,9 +63,18 @@ const first = async(route)=>{
                         "POST",
                         (r)=>{
                             r=JSON.parse(r);
-                            if(r&&r.user==="isregistered"){
+                            if(r.stat&&r.stat==="in"){
+                                alert("Welcome!")
+                                window.location.href = "./dashboard"
+                            }else if(r.pass&&r.pass==="failed"){
+                                alert("Wrong password or email or username. Please try again carefully.");
+                                window.location.reload;
+                            }else if(r&&r.user==="isregistered"){
                                 alert("Please Log In!");
                                 setupForLogIn();
+                            }else{
+                                alert("Please Sign Up!");
+                                setupForSignUp();
                             }
                         }
                     )
