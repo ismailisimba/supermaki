@@ -2,6 +2,9 @@
 *.DS_Store
 *.log
 
+#Custom Ignores
+old
+
 # Archives
 *.zip
 

@@ -4,8 +4,9 @@ const ivSize = 128;
 const iterations = 100;
 
 window.onload = ()=>{
+    checkLogIn();
     addLogInNSignUpEvent();
-    startASocketConn();
+    //startASocketConn();
 }
 
 
@@ -43,13 +44,36 @@ const checkLogInNSignUpEvent = (e)=>{
         val==="Login"?first("login"):first("signup");
 }
 
+
+const checkLogIn = async()=>{
+    const serve = await importAmod("server");
+    const server = new serve.server();
+    server.startFetch(
+        JSON.stringify({}),
+        `/checklogin`,
+        "GET",
+        (r)=>{
+          const response = JSON.parse(r)
+            if(response&&response.useris==="in"){
+                alert("Welcome")
+              window.location.href = "./dashboard"
+
+            }else{
+            }
+        }
+    )
+}
+
 const first = async(route)=>{
         const usnum = document.getElementById("username").value;
         const uspass = document.getElementById("password").value;
         const mykeys = (route==="login")?{uspass,usnum}:{uspass,usnum,"email":document.getElementById("email").value};
         const serve = await importAmod("server");
+        const anim = await importAmod("animation");
+        const anime = new anim.anime(); 
         const server = new serve.server();
         const allkey = document.querySelector('meta[name="defsource"]').content;
+        anime.startAnime();
         server.startFetch(
             allkey,
             "/checksource",
@@ -64,7 +88,7 @@ const first = async(route)=>{
                         (r)=>{
                             r=JSON.parse(r);
                             if(r.stat&&r.stat==="in"){
-                                alert("Welcome!")
+                                //alert("Welcome!")
                                 window.location.href = "./dashboard"
                             }else if(r.pass&&r.pass==="failed"){
                                 alert("Wrong password or email or username. Please try again carefully.");
@@ -90,7 +114,7 @@ const first = async(route)=>{
 
 const startASocketConn = ()=>{
     // Create WebSocket connection.
-    const socket = new WebSocket('ws://expresstoo-jzam6yvx3q-ez.a.run.app/:8080');
+    const socket = new WebSocket('wss://expresstoo-jzam6yvx3q-ez.a.run.app/:8080');
 
     // Connection opened
     socket.addEventListener('open', (event) => {

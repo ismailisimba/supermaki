@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.js" integrity="sha512-NQVmLzNy4Lr5QTrmXvq/WzTMUnRHmv7nyIT/M6LyGPBS+TIeRxZ+YQaqWxjpRpvRMQSuYPQURZz/+pLi81xXeA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <link rel="icon" type="image/png" href="favicon.png?version=1">
+<link rel="stylesheet" type="text/css" href="./custom.css">
 <style>
 body {
   font-family: Arial, Helvetica, sans-serif;
@@ -24,6 +25,13 @@ body {
   background-color: #f2f2f2;
   padding: 20px 0 30px 0;
 } 
+
+p,h2{
+  margin: 0 auto;
+   max-width: 720px;
+}
+
+
 
 /* style inputs and link buttons */
 input,
@@ -144,8 +152,8 @@ input[type=submit]:hover {
 </head>
 <body>
 
-<h2>Welcome to a 2nd Version of a Test Project by MaKi</h2>
-<p>Create an account with your email, or log in if you already have one!</p>
+<h2 style="margin-top:120px;">Welcome to a 2nd Version of a Test Project by MaKi</h2>
+<p style="margin-bottom:20px;" >Create an account with your email, or log in if you already have one!</p>
 
 <div class="container">
   <form>
@@ -190,6 +198,10 @@ input[type=submit]:hover {
       <a href="#" style="color:white" class="btn">Forgot password?</a>
     </div>
   </div>
+</div>
+
+<div class="loadinghand">
+  <img src="../icons/handload.gif">
 </div>
 <script src="./script.js"></script>
 

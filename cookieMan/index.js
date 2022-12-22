@@ -9,6 +9,7 @@ class cookieMan {
         this.customDateFormater = customDateFormater;
         this.getMasterKey = getMasterKey;
         this.makeACookie = makeACookie;
+        this.getThisCookie = getThisCookie;
 
      
     }
@@ -109,6 +110,32 @@ const getMasterKey = async ()=>{
         
     return rows;
 }
+
+
+const getThisCookie = async (cookieVal)=>{
+    
+  var rows = {};
+  try{
+      rows = await bigqueryClient
+      .dataset("makione")
+      .table("sessions")
+      .query(`SELECT *               
+      FROM \`ismizo.makione.sessions\`
+      WHERE cookieVal='${cookieVal}'
+      ORDER BY Username NULLS LAST;`).then(r=>{
+      return r;
+
+  }).then((r)=>{
+      const allkey = r[0][0].cookieVal;
+      return allkey;
+  })
+  }catch(e){
+      rows = {"err":"err","details":JSON.stringify(e, null, 2)};
+  }
+      
+  return rows;
+}
+
 
 
 

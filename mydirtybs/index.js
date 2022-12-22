@@ -15,6 +15,8 @@ class mydirtybase {
         this.logIn = logIn;
         this.signUp = signUp;
         this.addUser = addUser;
+        this.checkIfLogIn = checkIfLogIn;
+        this.getBasicUserInfo = getBasicUserInfo;
     }
 }
 
@@ -160,6 +162,34 @@ async function findUser(username,email){
        const [rows2] = await job2.getQueryResults(job2)
      return {rows,rows2};
     }
+
+const checkIfLogIn = async (req,res,next)=>{
+    const msg = crypto.decrypt(req.cookies.makiCookie, await cookieManager.getMasterKey());
+    const nMsg = JSON.parse(msg);
+    if(nMsg&&nMsg.user){
+        const onCook = await cookieManager.getThisCookie(req.cookies.makiCookie);
+        if(onCook===req.cookies.makiCookie){
+            res.locals.plainCookie = nMsg;
+            next();
+        }else{
+            res.send({"useris":"notin"})
+        }
+    }else{
+        res.send({"useris":"notin"})
+    }
+}
+
+const getBasicUserInfo = async(req,res,next)=>{
+    const username = res.locals.plainCookie.user;
+    const userDetails = await findUser(username,username);
+    const baseInfo ={
+        "firstName":userDetails.rows[0].FirstName,
+        "lastName":userDetails.rows[0].LastName,
+        "username":userDetails.rows[0].Username,
+        "email":userDetails.rows[0].email,
+    }
+    res.send(JSON.stringify(baseInfo));
+}
 
 
 

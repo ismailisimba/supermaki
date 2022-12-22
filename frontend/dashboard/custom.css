@@ -1,0 +1,29 @@
+.loadinghand{
+    display: block;
+    position: fixed;
+    box-sizing: border-box;
+    left:50%;
+    top: 169px;
+    margin-left: -68px;
+    background-color: white;
+    width: 120px;
+    height: 69px;
+
+    border: .69px dotted black;
+    border-radius: 6px;
+    padding: 64px 84px;
+
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+
+    transform: translateY(-500px);
+    transition: all .69s ease-out;
+}
+
+.loadinghand img{
+    width: 68px;
+    height: auto;
+}

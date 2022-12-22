@@ -1,7 +1,9 @@
 const express = require('express');
+const path = require('path');
 const MDBS = require("./mydirtybs");
 const ws = require('ws');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 
 
 const mydirtybs = new MDBS();
@@ -17,8 +19,12 @@ const textParser = bodyParser.text({limit:"50mb"});
 
 const serveStatic = require('serve-static');
 
-app.use(serveStatic('frontend', { index: ['index.html', 'index.htm'] }))
 
+
+
+
+
+app.use("/",serveStatic('frontend', { index: ['index.html', 'index.htm'] }))
 
 
 
@@ -27,11 +33,19 @@ app.use(serveStatic('frontend', { index: ['index.html', 'index.htm'] }))
 
 
 app.get("/",()=>{});
+app.get("/checklogin",[cookieParser(),mydirtybs.checkIfLogIn],(req,res,next)=>{
+  res.send({"useris":"in"});
+});
+app.get("/getUserName",[cookieParser(),mydirtybs.checkIfLogIn],mydirtybs.getBasicUserInfo);
+app.get("/dashboard",[cookieParser(),mydirtybs.checkIfLogIn],(req,res,next)=>{
+  res.sendFile('index.html', { root: path.join(__dirname, './dashboard') });
+});
+
 
 app.post("/checksource",textParser,mydirtybs.checksource);
 app.post("/login",textParser,mydirtybs.logIn);
 app.post("/signup",textParser,mydirtybs.signUp);
-app.get("/dashboard",textParser,()=>{});
+
 
 
 const wsServer = new ws.Server({ noServer: true });
