@@ -5,8 +5,11 @@ const iterations = 100;
 
 
 window.onload = (e)=>{
+    startPagessModule();
+    startElementsModule()
     checkLogIn();
     startUserModule();
+    startMessagesModule();
 }
 
 
@@ -44,6 +47,26 @@ const startUserModule = async() =>{
   user.start();
 }
 
+
+const startMessagesModule = async() =>{
+  const msgMod = await importAmod("messages");
+  const msgs = new msgMod.messages();
+  msgs.start();
+}
+
+
+const startElementsModule = async() =>{
+  const mod = await importAmod("elements");
+  const eles = new mod.elements();
+  eles.start();
+}
+
+
+const startPagessModule = async() =>{
+  const mod = await importAmod("pages");
+  const pgs = new mod.pages();
+  pgs.start();
+}
 
 
 

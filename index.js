@@ -1,4 +1,5 @@
 const express = require('express');
+const favicon = require('serve-favicon')
 const path = require('path');
 const MDBS = require("./mydirtybs");
 const ws = require('ws');
@@ -23,7 +24,7 @@ const serveStatic = require('serve-static');
 
 
 
-
+app.use(favicon(path.join(__dirname, 'frontend', 'favicon.png')))
 app.use("/",serveStatic('frontend', { index: ['index.html', 'index.htm'] }))
 
 
@@ -40,6 +41,7 @@ app.get("/getUserName",[cookieParser(),mydirtybs.checkIfLogIn],mydirtybs.getBasi
 app.get("/dashboard",[cookieParser(),mydirtybs.checkIfLogIn],(req,res,next)=>{
   res.sendFile('index.html', { root: path.join(__dirname, './dashboard') });
 });
+app.get("/getnotifications",[cookieParser(),mydirtybs.checkIfLogIn],mydirtybs.getNotifications);
 
 
 app.post("/checksource",textParser,mydirtybs.checksource);

@@ -17,6 +17,7 @@ class mydirtybase {
         this.addUser = addUser;
         this.checkIfLogIn = checkIfLogIn;
         this.getBasicUserInfo = getBasicUserInfo;
+        this.getNotifications = getNotifications;
     }
 }
 
@@ -165,7 +166,7 @@ async function findUser(username,email){
 
 const checkIfLogIn = async (req,res,next)=>{
     const msg = crypto.decrypt(req.cookies.makiCookie, await cookieManager.getMasterKey());
-    const nMsg = JSON.parse(msg);
+    const nMsg = msg==undefined?{"useris":"notin"}:JSON.parse(msg);
     if(nMsg&&nMsg.user){
         const onCook = await cookieManager.getThisCookie(req.cookies.makiCookie);
         if(onCook===req.cookies.makiCookie){
@@ -183,12 +184,38 @@ const getBasicUserInfo = async(req,res,next)=>{
     const username = res.locals.plainCookie.user;
     const userDetails = await findUser(username,username);
     const baseInfo ={
-        "firstName":userDetails.rows[0].FirstName,
-        "lastName":userDetails.rows[0].LastName,
-        "username":userDetails.rows[0].Username,
-        "email":userDetails.rows[0].email,
+        "firstName":userDetails.rows[0]&&userDetails.rows[0].FirstName||userDetails.rows[0].FirstName==null? userDetails.rows[0].FirstName:userDetails.rows2[0].FirstName,
+        "lastName":userDetails.rows[0]&&userDetails.rows[0].LastName||userDetails.rows[0].LastName==null?userDetails.rows[0].LastName:userDetails.rows2[0].LastName,
+        "username":userDetails.rows[0]&&userDetails.rows[0].Username?userDetails.rows[0].Username:userDetails.rows2[0].Username,
+        "email":userDetails.rows[0]&&userDetails.rows[0].email?userDetails.rows[0].email:userDetails.rows2[0].email,
     }
-    res.send(JSON.stringify(baseInfo));
+    res.send(baseInfo);
+}
+
+const getNotifications = async(req,res,next)=>{
+    options = {
+        // Specify a job configuration to set optional job resource properties.
+        configuration: {
+          query: {
+            query: `SELECT *                 
+            FROM \`ismizo.makione.messages\`
+            WHERE  type='notiMsg' AND subcsribers LIKE '%${res.locals.plainCookie.user}%'`,
+            useLegacySql: false,
+          },
+          labels: {'example-label': 'example-value'},
+        },
+      };
+
+      const response = await bigqueryClient.createJob(options);
+       const job = response[0];
+     
+       // Wait for the query to finish
+       const [rows] = await job.getQueryResults(job);
+       const arr = [];
+       for(let i=0;i<rows.length;i++){
+        arr.push(rows[i])
+       }
+       res.send(arr);
 }
 
 

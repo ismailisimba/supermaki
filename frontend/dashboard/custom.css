@@ -27,3 +27,13 @@
     width: 68px;
     height: auto;
 }
+
+.notimenu{
+    max-height: 500px;
+    overflow-y: scroll;
+}
+
+.noticard1{
+    max-height: 69px;
+    overflow-y: hidden;
+}
