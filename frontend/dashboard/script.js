@@ -4,7 +4,8 @@ const ivSize = 128;
 const iterations = 100;
 
 
-window.onload = (e)=>{
+window.onload = async(e)=>{
+    startAnimation();
     startPagessModule();
     startElementsModule()
     checkLogIn();
@@ -30,6 +31,14 @@ const checkLogIn = async()=>{
             }
         }
     )
+}
+
+
+
+const startAnimation = async()=>{
+  const ani = await importAmod("animation");
+  const anime = new ani.anime();
+  anime.startAnime();
 }
 
 

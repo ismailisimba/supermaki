@@ -25,8 +25,10 @@ const getNotiForThisUser = async ()=>{
         `/getnotifications`,
         "GET",
         (r)=>{
-            const notis = JSON.parse(r)
+            const notis = JSON.parse(r);
+            messObjPubl.notis = notis;
             paintNotifications(notis);
+            stopAnimation();
         }
     )
 }
@@ -46,9 +48,14 @@ const paintNotifications=async(notifications)=>{
     }else{
         document.getElementById("notibadge").classList.remove("badge-danger");
     }
-    console.log(notifications)
-    console.log(elements.obj)
 }
+
+
+const stopAnimation = async()=>{
+    const ani = await importAmod("animation");
+    const anime = new ani.anime();
+    anime.stopAnime();
+  }
 
 
 const importAmod = (name)=>{

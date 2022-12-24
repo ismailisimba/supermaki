@@ -17,13 +17,13 @@ class cookieMan {
 
 
 
-const startSession = async (action,req,bodyobj)=>{
+const startSession = async (action,req,uniqusnum)=>{
     const obj = {};
     if(action==="login"){
         const ip = req.ip;
         const ip2 = req.headers['x-forwarded-for'] || req.socket.remoteAddress ;
         const date = customDateFormater();
-        const usnum = bodyobj.usnum;
+        const usnum = uniqusnum;
         obj["res"] = await makeACookie(ip,ip2,usnum,action,date);
         obj.ip = ip;
         obj.ip2 = ip2;
@@ -36,7 +36,7 @@ const startSession = async (action,req,bodyobj)=>{
           query: {
             query: `INSERT ismizo.makione.sessions
                    (Username,Time,Action,cookieVal)
-                   VALUES('${bodyobj.usnum}','${obj.date}','${action}','${obj.res}')
+                   VALUES('${uniqusnum}','${obj.date}','${action}','${obj.res}')
                   `,
             useLegacySql: false,
           },

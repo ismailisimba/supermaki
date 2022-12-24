@@ -67,7 +67,7 @@ const logIn = async (req,res,next)=>{
             if(ans.pass){
                 ans.pass = JSON.parse(ans.pass);
                 if(ans.pass.usnum===obj.usnum||ans.pass.email===obj.usnum){
-                    ans.pass = await cookieManager.startSession("login",req,obj);
+                    ans.pass = await cookieManager.startSession("login",req,ans.pass.usnum);
                     res.cookie('makiCookie',ans.pass, { maxAge: 28800000, httpOnly: true,sameSite:"none",secure:true,overwrite: true });
                     ans["stat"]="in";
                 }else{
@@ -173,23 +173,41 @@ const checkIfLogIn = async (req,res,next)=>{
             res.locals.plainCookie = nMsg;
             next();
         }else{
-            res.send({"useris":"notin"})
+            res.redirect("/");
         }
     }else{
-        res.send({"useris":"notin"})
+        res.redirect("/")
     }
 }
 
 const getBasicUserInfo = async(req,res,next)=>{
     const username = res.locals.plainCookie.user;
     const userDetails = await findUser(username,username);
-    const baseInfo ={
-        "firstName":userDetails.rows[0]&&userDetails.rows[0].FirstName||userDetails.rows[0].FirstName==null? userDetails.rows[0].FirstName:userDetails.rows2[0].FirstName,
-        "lastName":userDetails.rows[0]&&userDetails.rows[0].LastName||userDetails.rows[0].LastName==null?userDetails.rows[0].LastName:userDetails.rows2[0].LastName,
-        "username":userDetails.rows[0]&&userDetails.rows[0].Username?userDetails.rows[0].Username:userDetails.rows2[0].Username,
-        "email":userDetails.rows[0]&&userDetails.rows[0].email?userDetails.rows[0].email:userDetails.rows2[0].email,
+    const base = {}
+
+
+    if(userDetails.rows[0]&&userDetails.rows[0].FirstName||userDetails.rows[0].FirstName==null){
+        base.Info ={
+            "firstName":userDetails.rows[0].FirstName,
+            "lastName":userDetails.rows[0].LastName,
+            "username":userDetails.rows[0].Username,
+            "files":userDetails.rows[0].files,
+            "thumbnail":userDetails.rows[0].thumbnail,
+            "email":userDetails.rows[0].email,
+        }
+
+    }else{
+        base.Info ={
+            "firstName":userDetails.rows2[0].FirstName,
+            "lastName":userDetails.rows2[0].LastName,
+            "username":userDetails.rows2[0].Username,
+            "email":userDetails.rows2[0].email,
+            "files":userDetails.rows2[0].files,
+            "thumbnail":userDetails.rows2[0].thumbnail,
+        }
+
     }
-    res.send(baseInfo);
+    res.send(base);
 }
 
 const getNotifications = async(req,res,next)=>{

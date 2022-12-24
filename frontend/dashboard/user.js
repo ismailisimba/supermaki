@@ -6,7 +6,7 @@ class user {
     
     constructor(){
         this.start = this.start;
-        this.userObj = userObjPubl;
+        this.userObj = userObj;
         
     }
 
@@ -32,12 +32,14 @@ const getUserName = async()=>{
 
 
 const setUserInfo = (userInfObj)=>{
-    userObj.firstName = userInfObj.firstName;
-    userObj.lastName = userInfObj.lastName;
-    userObj.username = userInfObj.username;
-    userObj.email = userInfObj.email;
+    userObj.firstName = userInfObj.Info.firstName;
+    userObj.lastName = userInfObj.Info.lastName;
+    userObj.username = userInfObj.Info.username;
+    userObj.email = userInfObj.Info.email;
+    userObj.thumbnail = userInfObj.Info.thumbnail;
+    userObj.files = userInfObj.Info.files;
 
-    userObjPubl.username = userInfObj.username;
+    userObjPubl.username = userInfObj.Info.username;
     paintBaseUserInfo();
 }
 
@@ -45,10 +47,12 @@ const setUserInfo = (userInfObj)=>{
 const paintBaseUserInfo = () =>{
     const userPanelOne = document.querySelectorAll(".user-panel, .mt-3, .pb-3, .mb-3, .d-flex")[0];
     const fullName = userPanelOne.querySelectorAll("a")[0];
+    const imgThumb = userPanelOne.querySelectorAll(".image")[0].querySelectorAll("img")[0];
     const username = userPanelOne.querySelectorAll("a")[1];
     //add image e.t.c later
 
     userObj.firstName===null?fullName.innerHTML = "<span><em>No Name Given</em></span>":userObj.firstName+" "+userObj.lastName;
+    userObj.thumbnail===null?imgThumb.src = "./icons/noprofile.png":userObj.thumbnail;
     username.innerHTML = userObj.username;
 }
 
