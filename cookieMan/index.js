@@ -10,6 +10,7 @@ class cookieMan {
         this.getMasterKey = getMasterKey;
         this.makeACookie = makeACookie;
         this.getThisCookie = getThisCookie;
+        this.getPersKey = getPersKey;
 
      
     }
@@ -109,6 +110,29 @@ const getMasterKey = async ()=>{
     }
         
     return rows;
+}
+
+const getPersKey = async (u)=>{
+    
+  var rows = {};
+  try{
+      rows = await bigqueryClient
+      .dataset("makione")
+      .table("keys")
+      .query(`SELECT passEncry               
+      FROM \`ismizo.makione.users\`
+      WHERE Username='${u}'
+      ORDER BY Username NULLS LAST;`).then(r=>{
+      return r;
+  }).then((r)=>{
+    const allkey = r[0][0].passEncry;
+    return allkey;
+})
+  }catch(e){
+      rows = {"err":"err","details":JSON.stringify(e, null, 2)};
+  }
+      
+  return rows;
 }
 
 

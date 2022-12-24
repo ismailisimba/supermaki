@@ -1,4 +1,5 @@
 export {server as server};
+const upFiles = [];
 
 const serverURL = window.location.hostname.includes("127.0.0.1")?"http://127.0.0.1:8080":"https://expresstoo-jzam6yvx3q-ez.a.run.app";
 //const paraOne = "test";
@@ -6,6 +7,8 @@ class server {
     
     constructor(){
         this.startFetch = fetchInfoWithFilter;
+        this.processProfileForm = processProfileForm;
+        this.getFile = getFile;
     
         
     }
@@ -48,3 +51,70 @@ const fetchInfoWithFilter = async (
 }
 
 
+const readAsb64 = async (file)=>{
+
+
+  const b64file = file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+});
+  return await b64file(file);
+}
+
+
+const getFile = async(e)=>{
+  const rawFile = e.target.files[0];
+  const fileSize = rawFile.size;
+  const fileName = rawFile.name;
+  const fileMime = rawFile.type;
+  const fileSrc = e.target.id;
+  const fileDataB64 = await readAsb64(rawFile);
+  const fileToUpload = {fileSize,fileName,fileMime,fileSrc,fileDataB64}
+  upFiles.push(fileToUpload);
+
+
+  if(e.target.id==="inputPic"){
+    e.target.parentNode.querySelectorAll("img")[0].src=fileDataB64;
+  }
+
+
+}
+
+
+const processProfileForm = async (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+
+    const formData = new FormData();
+    const inputs = await readAllInputs(e.currentTarget);
+    console.log(inputs)
+    formData.append("inputs",JSON.stringify(inputs))
+    fetchInfoWithFilter(formData,"/updateprofile","POST",(e)=>{
+      console.log(e);
+      alert("Profile Updated Succesfully!");
+      window.location.reload();
+    })
+    
+}
+
+const readAllInputs = async(form)=>{
+  const arr = [];
+  form.querySelectorAll("input").forEach(async(input)=>{
+    const name = input.id;
+    const value = {};
+    if(name==="inputPic"){
+      upFiles.forEach(obj=>{
+        if(obj.fileSrc===name){
+          value.v = obj;
+        }
+      })
+    }else{
+      value.v = input.value;
+    }
+    const obj = value.v;
+    arr.push({name,obj})
+  })
+  return arr;
+}

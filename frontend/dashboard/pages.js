@@ -91,14 +91,42 @@ const addProfPage = async(e)=>{
     document.getElementById("cmain").innerHTML = `${profMom}`;
     const fullName = document.getElementById("cmain").querySelectorAll("h3.profile-username")[0];
     const userName = document.getElementById("cmain").querySelectorAll(".text-muted")[0];
-    const imgThumb = document.querySelectorAll(".profile-user-img")[0]
+    const imgThumb = document.querySelectorAll(".profile-user-img")[0];
+    const card = document.querySelectorAll(".callout-info")[0];
     
     webData.userObj.firstName===null?fullName.innerHTML = "<span><em>No Name Given</em></span>":webData.userObj.firstName+" "+userObj.lastName;
     webData.userObj.thumbnail===null?imgThumb.src = "./icons/noprofile.png":webData.userObj.thumbnail;
     userName.innerHTML = webData.userObj.username;
+    
+    card.querySelectorAll("h5")[0].innerHTML = webData.userObj.username;
+    card.querySelectorAll("p")[0].innerHTML = "Username";
+    document.getElementById("inputName").value = webData.userObj.username;
 
-    console.log(webData.userObj);
+    const mom = card.parentNode;
 
+    const emailCard = card.cloneNode(true);
+    emailCard.querySelectorAll("h5")[0].innerHTML = webData.userObj.email;
+    emailCard.querySelectorAll("p")[0].innerHTML = "Email";
+    mom.appendChild(emailCard);
+    document.getElementById("inputEmail").value = webData.userObj.email;
+
+    const fnameCard = card.cloneNode(true);
+    fnameCard.querySelectorAll("h5")[0].innerHTML = webData.userObj.firstName;
+    fnameCard.querySelectorAll("p")[0].innerHTML = "First Name";
+    mom.appendChild(fnameCard);
+    document.getElementById("firstName").value = webData.userObj.firstName;
+
+    const lnameCard = card.cloneNode(true);
+    lnameCard.querySelectorAll("h5")[0].innerHTML = webData.userObj.lastName;
+    lnameCard.querySelectorAll("p")[0].innerHTML = "Last Name";
+    mom.appendChild(lnameCard);
+    document.getElementById("lastName").value = webData.userObj.lastName;
+
+    const serv = await importAmod("server");
+    const server = new serv.server();
+   // document.getElementById("profform").addEventListener("click",server.processProfileForm)
+    document.getElementById("inputPic").addEventListener("input",server.getFile)
+    document.getElementById("profform").addEventListener("submit",server.processProfileForm) 
     updatesOnNavigation("Profile")
 }
 

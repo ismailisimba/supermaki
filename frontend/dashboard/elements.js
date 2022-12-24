@@ -117,11 +117,11 @@ eleObj.profileCols = `<div class="col-md-3">
       <!-- /.tab-pane -->
 
       <div class="tab-pane" id="settings">
-        <form class="form-horizontal">
+        <form class="form-horizontal" id="profform">
         <div class="form-group row">
             <label for="inputPic" class="col-sm-2 col-form-label">Profile Picture</label>
             <div class="col-sm-10">
-            <img src="./icons/noprofile.png" width="64px">
+            <img src="./icons/noprofile.png" width="169px">
               <input type="file" class="form-control" id="inputPic" placeholder="Pic" accept="image/png, image/jpeg, image/webp, image/gif">
             </div>
           </div>
@@ -160,7 +160,7 @@ eleObj.profileCols = `<div class="col-md-3">
           </div>
           <div class="form-group row">
             <div class="offset-sm-2 col-sm-10">
-              <button type="submit" class="btn btn-danger">Submit</button>
+              <button type="submit" class="btn btn-danger" id="profsub">Submit</button>
             </div>
           </div>
         </form>

@@ -6,6 +6,7 @@ const ws = require('ws');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 
+const formidableMiddleware = require('express-formidable');
 
 const mydirtybs = new MDBS();
 const app = express();
@@ -42,6 +43,9 @@ app.get("/dashboard",[cookieParser(),mydirtybs.checkIfLogIn],(req,res,next)=>{
   res.sendFile('index.html', { root: path.join(__dirname, './dashboard') });
 });
 app.get("/getnotifications",[cookieParser(),mydirtybs.checkIfLogIn],mydirtybs.getNotifications);
+
+
+app.post("/updateprofile",[cookieParser(),formidableMiddleware({multiples:true}),mydirtybs.checkIfLogIn],mydirtybs.updateProfile);
 
 
 app.post("/checksource",textParser,mydirtybs.checksource);
