@@ -93,9 +93,20 @@ const addProfPage = async(e)=>{
     const userName = document.getElementById("cmain").querySelectorAll(".text-muted")[0];
     const imgThumb = document.querySelectorAll(".profile-user-img")[0];
     const card = document.querySelectorAll(".callout-info")[0];
+    console.log(webData);
+    if(webData.userObj.firstName===null||webData.userObj.firstName===undefined||webData.userObj.firstName==="undefined"){
+        fullName.innerHTML = "<span><em>No Name Given</em></span>";
+    }else{
+        fullName.innerHTML = webData.userObj.firstName+" "+webData.userObj.lastName;
+    }
+
+    if(webData.userObj.thumbnail===null||webData.userObj.firstName===undefined){
+        imgThumb.src = "./icons/noprofile.png";
+    }else{
+        imgThumb.src = webData.userObj.thumbnail;
+    }
+
     
-    webData.userObj.firstName===null?fullName.innerHTML = "<span><em>No Name Given</em></span>":webData.userObj.firstName+" "+userObj.lastName;
-    webData.userObj.thumbnail===null?imgThumb.src = "./icons/noprofile.png":webData.userObj.thumbnail;
     userName.innerHTML = webData.userObj.username;
     
     card.querySelectorAll("h5")[0].innerHTML = webData.userObj.username;

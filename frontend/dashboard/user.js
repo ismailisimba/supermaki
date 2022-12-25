@@ -51,8 +51,17 @@ const paintBaseUserInfo = () =>{
     const username = userPanelOne.querySelectorAll("a")[1];
     //add image e.t.c later
 
-    userObj.firstName===null?fullName.innerHTML = "<span><em>No Name Given</em></span>":userObj.firstName+" "+userObj.lastName;
-    userObj.thumbnail===null?imgThumb.src = "./icons/noprofile.png":userObj.thumbnail;
+    if(userObj.firstName===null||userObj.firstName===undefined||userObj.firstName==="undefined"){
+        fullName.innerHTML = "<span><em>No Name Given</em></span>";
+    }else{
+        fullName.innerHTML = userObj.firstName+" "+userObj.lastName;
+    }
+
+    if(userObj.thumbnail===null||userObj.firstName===undefined){
+        imgThumb.src = "./icons/noprofile.png";
+    }else{
+        imgThumb.src = userObj.thumbnail;
+    }
     username.innerHTML = userObj.username;
 }
 

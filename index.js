@@ -43,6 +43,7 @@ app.get("/dashboard",[cookieParser(),mydirtybs.checkIfLogIn],(req,res,next)=>{
   res.sendFile('index.html', { root: path.join(__dirname, './dashboard') });
 });
 app.get("/getnotifications",[cookieParser(),mydirtybs.checkIfLogIn],mydirtybs.getNotifications);
+app.get("/getfile/:id",[cookieParser()],mydirtybs.getFilePubl);
 
 
 app.post("/updateprofile",[cookieParser(),formidableMiddleware({multiples:true}),mydirtybs.checkIfLogIn],mydirtybs.updateProfile);

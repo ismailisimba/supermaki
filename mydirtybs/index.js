@@ -24,6 +24,7 @@ class mydirtybase {
         this.getBasicUserInfo = getBasicUserInfo;
         this.getNotifications = getNotifications;
         this.updateProfile = updateProfile;
+        this.getFilePubl = getFilePubl;
     }
 }
 
@@ -245,12 +246,80 @@ const getNotifications = async(req,res,next)=>{
 const updateProfile = async(req,res,next)=>{
     const obj = JSON.parse(req.fields.inputs);
     const file = await uploadFile(obj[0],res);
-    const fName = obj[1].obj;
-    const lName = obj[2].obj;
-    const uName = obj[3].obj;
+    const uName = res.locals.plainCookie.user;
+    const fName = obj[2].obj;
+    const lName = obj[3].obj;
     const email = obj[4].obj;
     console.log(file,fName,lName,uName,email)
-    //res.send({"useris":"updates"});
+    const options = {
+        // Specify a job configuration to set optional job resource properties.
+        configuration: {
+          query: {
+            query: `UPDATE ismizo.makione.users
+         SET FirstName = '${fName}', LastName = '${lName}', email ='${email}', thumbnail ='${file.publUrL}'
+         WHERE Username = '${uName}' 
+       `,
+            useLegacySql: false,
+          },
+          labels: {'example-label': 'example-value'},
+        },
+      };
+      const response = await bigqueryClient.createJob(options);
+       const job = response[0];
+     
+       // Wait for the query to finish
+       const [rows] = await job.getQueryResults(job);
+       const arr = [];
+       for(let i=0;i<rows.length;i++){
+        arr.push(rows[i])
+       }
+       console.log(arr);
+       res.send({"useris":"updates"});
+    
+}
+
+const getFilePubl =  async(req,res,next) =>{
+    const file = myBucket.file(req.params.id);
+    console.log(req.params.id);
+    const meta = await file.getMetadata().then(function(data) {
+        const metadata = data[0];
+        const apiResponse = data[1];
+        return metadata;
+      });
+    const fileData = await file.download().then(function(data) {
+        const contents = data[0];
+        return contents;
+      }).catch(e=>{
+        console.log(e);
+      });
+      res.set('Content-Disposition', `attachment; filename="${meta.metadata.ogname}"`);
+      res.contentType(`${meta.contentType}`);
+      res.send(fileData);
+}
+
+
+const getFilePrivate =  async(req,res,next) =>{
+    const file = myBucket.file(req.params.id);
+    const meta = await file.getMetadata().then(function(data) {
+        const metadata = data[0];
+        const apiResponse = data[1];
+        return metadata;
+      });
+
+      if(meta.metadata.owner = res.locals.plainCookie.user){
+        const fileData = await file.download().then(function(data) {
+            const contents = data[0];
+            return contents;
+          }).catch(e=>{
+            console.log(e);
+          });
+          res.set('Content-Disposition', `attachment; filename="${meta.metadata.ogname}"`);
+          res.contentType(`${meta.contentType}`);
+          res.send(fileData);
+
+      }else{
+        res.send("You don't have permission to view this file!");
+      }
 }
 
 
@@ -283,12 +352,15 @@ const uploadFile =async (obj,res)=>{
         metadata.metadata.ogname = imgObj.fileName;
         metadata.metadata.uniqname = imgObj.webname;
         metadata.metadata.url = imgObj.url;
+        metadata.metadata.owner = usnum;
+        metadata.metadata.time = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second;
         file.setMetadata(metadata, function(err, apiResponse) {
           if(err){
             console.log(err);
           }else{
           }
         })
+        imgObj.publUrL = "https://expresstoo-jzam6yvx3q-ez.a.run.app/getfile/"+imgObj.url.split("makiv1/")[1];
         return imgObj;
     })
     return x;
