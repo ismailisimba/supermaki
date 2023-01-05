@@ -198,7 +198,7 @@ const menuOneActiveTheming3 = (e)=>{
     });
     window.setTimeout(()=>{
         item.childNodes[1].classList.add("active");
-    },600);
+    },100);
 }
 
 

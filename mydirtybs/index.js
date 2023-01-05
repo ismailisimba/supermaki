@@ -187,6 +187,23 @@ const checkIfLogIn = async (req,res,next)=>{
     }
 }
 
+const checkIfLogInToo = async (cookie)=>{
+    const msg = crypto.decrypt(cookie, await cookieManager.getMasterKey());
+    const nMsg = msg==undefined?{"useris":"notin"}:JSON.parse(msg);
+    const obj ={};
+    if(nMsg&&nMsg.user){
+        const onCook = await cookieManager.getThisCookie(cookie);
+        if(onCook===cookie){
+            obj.ans = nMsg.user;
+        }else{
+            obj.ans = no;
+        }
+    }else{
+        obj.ans = no
+    }
+    return obj;
+}
+
 const getBasicUserInfo = async(req,res,next)=>{
     const username = res.locals.plainCookie.user;
     const userDetails = await findUser(username,username);
@@ -245,12 +262,12 @@ const getNotifications = async(req,res,next)=>{
 
 const updateProfile = async(req,res,next)=>{
     const obj = JSON.parse(req.fields.inputs);
-    const file = await uploadFile(obj[0],res);
+    const file = await uploadFile(obj[0],res,"profpic");
     const uName = res.locals.plainCookie.user;
     const fName = obj[2].obj;
     const lName = obj[3].obj;
     const email = obj[4].obj;
-    console.log(file,fName,lName,uName,email)
+    updateUserFileList(uName,file);
     const options = {
         // Specify a job configuration to set optional job resource properties.
         configuration: {
@@ -269,61 +286,96 @@ const updateProfile = async(req,res,next)=>{
      
        // Wait for the query to finish
        const [rows] = await job.getQueryResults(job);
-       const arr = [];
-       for(let i=0;i<rows.length;i++){
-        arr.push(rows[i])
-       }
-       console.log(arr);
-       res.send({"useris":"updates"});
+       res.send(rows);
     
 }
 
 const getFilePubl =  async(req,res,next) =>{
     const file = myBucket.file(req.params.id);
-    console.log(req.params.id);
     const meta = await file.getMetadata().then(function(data) {
         const metadata = data[0];
         const apiResponse = data[1];
         return metadata;
       });
-    const fileData = await file.download().then(function(data) {
-        const contents = data[0];
-        return contents;
-      }).catch(e=>{
-        console.log(e);
-      });
-      res.set('Content-Disposition', `attachment; filename="${meta.metadata.ogname}"`);
-      res.contentType(`${meta.contentType}`);
-      res.send(fileData);
-}
-
-
-const getFilePrivate =  async(req,res,next) =>{
-    const file = myBucket.file(req.params.id);
-    const meta = await file.getMetadata().then(function(data) {
-        const metadata = data[0];
-        const apiResponse = data[1];
-        return metadata;
-      });
-
-      if(meta.metadata.owner = res.locals.plainCookie.user){
+      if(meta.metadata.owner.includes("public")){
         const fileData = await file.download().then(function(data) {
             const contents = data[0];
             return contents;
           }).catch(e=>{
             console.log(e);
           });
-          res.set('Content-Disposition', `attachment; filename="${meta.metadata.ogname}"`);
+          res.set('Content-Disposition', `inline; filename="${meta.metadata.ogname}"`);
           res.contentType(`${meta.contentType}`);
           res.send(fileData);
 
+      }else if(req.cookies.makiCookie){
+        const ans = await  checkIfLogInToo(req.cookies.makiCookie);
+        if(ans.ans!=="no"&&ans.ans===meta.metadata.owner){
+            const fileData = await file.download().then(function(data) {
+                const contents = data[0];
+                return contents;
+              }).catch(e=>{
+                console.log(e);
+              });
+              res.set('Content-Disposition', `inline; filename="${meta.metadata.ogname}"`);
+              res.contentType(`${meta.contentType}`);
+              res.send(fileData);
+            
+        }else{
+            res.send(`<h2 style="display:block;position:relative;margin:0 auto;color:red;font-size:42px">You have no permission to view this file.</h2>`)
+        }
+
       }else{
-        res.send("You don't have permission to view this file!");
+        res.send(`<h2 style="display:block;position:relative;margin:0 auto;color:red;font-size:42px">Please log in to view this file.</h2>`);
       }
+
 }
 
 
-const uploadFile =async (obj,res)=>{
+
+const updateUserFileList = async (user,file)=>{
+    //console.log({user,file});
+    //get the current user file list
+    const options1 = {
+        // Specify a job configuration to set optional job resource properties.
+        configuration: {
+          query: {
+            query: `SELECT files FROM ismizo.makione.users WHERE Username='${user}'`,
+            useLegacySql: false,
+          },
+          labels: {'example-label': 'example-value'},
+        },
+      };
+      const response = await bigqueryClient.createJob(options1);
+       const job = response[0];
+     
+       // Wait for the query to finish
+       const [rows] = await job.getQueryResults(job);
+       let newList = "";
+       if(rows[0].files===null||rows[0].files==="null"){
+        newList = file.publUrL;
+       }else{
+        newList = rows[0].files +", "+file.publUrL;
+       }
+       const options2 = {
+        // Specify a job configuration to set optional job resource properties.
+        configuration: {
+          query: {
+            query: `UPDATE ismizo.makione.users
+         SET files = '${newList}'
+         WHERE Username = '${user}' 
+       `,
+            useLegacySql: false,
+          },
+          labels: {'example-label': 'example-value'},
+        },
+      };
+      const response2 = await bigqueryClient.createJob(options2);
+       const job2 = response2[0];
+       console.log(job2)
+}
+
+const uploadFile =async (obj,res,folder)=>{
     const imgObj = obj.obj
     const metadata = {
         contentType: 'application/x-font-ttf',
@@ -338,10 +390,9 @@ const uploadFile =async (obj,res)=>{
     const prfx = arrToString(shuffle(arr));
     const date = cookieManager.customDateFormater();
     const usnum = res.locals.plainCookie.user;
-    const filename = prfx+date.year+date.month+date.day+date.hour+date.minute+usnum;
-    const safename = crypto.encrypt(filename, await cookieManager.getPersKey(usnum));
-    imgObj.webname = safename;
-    const file = myBucket.file(safename);
+    const filename = prfx+date.year+date.month+date.day+date.hour+date.minute+date.second.replaceAll(".","_");
+    imgObj.webname = filename;
+    const file = myBucket.file(filename);
     const x = await file.save(Buffer.from(imgObj.fileDataB64.split(",")[1],"base64"), {
         contentType: imgObj.fileMime,
         resumable: false,
@@ -353,6 +404,7 @@ const uploadFile =async (obj,res)=>{
         metadata.metadata.uniqname = imgObj.webname;
         metadata.metadata.url = imgObj.url;
         metadata.metadata.owner = usnum;
+        metadata.metadata.folder = folder;
         metadata.metadata.time = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second;
         file.setMetadata(metadata, function(err, apiResponse) {
           if(err){
