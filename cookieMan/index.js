@@ -168,9 +168,7 @@ const ipCheck = (req,res,next)=>{
       'ismailisimba.github.io',
       '127.0.0.1:5500',
       '127.0.0.1:8080',
-      '127.0.0.1:8080/dashboard/',
-      'expresstoo-jzam6yvx3q-ez.a.run.app/dashboard/',
-      'expresstoo-jzam6yvx3q-ez.a.run.app/'
+      'expresstoo-jzam6yvx3q-ez.a.run.app'
   ];
   if (corsWhitelist.indexOf(req.headers.host) !== -1) {
       res.append('Access-Control-Allow-Origin', req.headers.host);
