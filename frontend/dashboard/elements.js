@@ -122,7 +122,7 @@ eleObj.profileCols = `<div class="col-md-3">
             <label for="inputPic" class="col-sm-2 col-form-label">Profile Picture</label>
             <div class="col-sm-10">
             <img src="./icons/noprofile.png" width="169px">
-              <input type="file" class="form-control" id="inputPic" placeholder="Pic" accept="image/png, image/jpeg, image/webp, image/gif">
+              <input type="file" class="form-control" id="inputPic" name="inputPic" placeholder="Pic" accept="image/png, image/jpeg, image/webp, image/gif">
             </div>
           </div>
           <div class="form-group row">
@@ -171,4 +171,49 @@ eleObj.profileCols = `<div class="col-md-3">
   </div><!-- /.card-body -->
 </div>
 <!-- /.card -->
-</div>`
+</div>`;
+
+eleObj.card = (() => {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `<div class="card-body">
+    <h5 class="card-title">Card title</h5>
+
+    <p class="card-text">
+      Some quick example text to build on the card title and make up the bulk of the card's
+      content.
+    </p>
+
+    <a href="#" class="card-link">Card link</a>
+    <a href="#" class="card-link">Another link</a>
+  </div>`;
+  return card;
+})();
+
+eleObj.files = (()=>{
+  const card = document.createElement("div");
+  card.className = "card-text";
+  card.innerHTML = `<div>
+  <div class="btn-group w-100 mb-2">
+    <a class="btn btn-info active" href="javascript:void(0)" data-filter="all"> All items </a>
+    <a class="btn btn-info" href="javascript:void(0)" data-filter="1"> Category 1 (WHITE) </a>
+    <a class="btn btn-info" href="javascript:void(0)" data-filter="2"> Category 2 (BLACK) </a>
+    <a class="btn btn-info" href="javascript:void(0)" data-filter="3"> Category 3 (COLORED) </a>
+    <a class="btn btn-info" href="javascript:void(0)" data-filter="4"> Category 4 (COLORED, BLACK) </a>
+  </div>
+  <div class="mb-2">
+    <a class="btn btn-secondary" href="javascript:void(0)" data-shuffle=""> Shuffle items </a>
+    <div class="float-right">
+      <select class="custom-select" style="width: auto;" data-sortorder="">
+        <option value="index"> Sort by Position </option>
+        <option value="sortData"> Sort by Custom Data </option>
+      </select>
+      <div class="btn-group">
+        <a class="btn btn-default" href="javascript:void(0)" data-sortasc=""> Ascending </a>
+        <a class="btn btn-default" href="javascript:void(0)" data-sortdesc=""> Descending </a>
+      </div>
+    </div>
+  </div>
+</div>`;
+return card;
+})()

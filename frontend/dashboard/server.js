@@ -87,9 +87,16 @@ const processProfileForm = async (e)=>{
     e.preventDefault();
     e.stopPropagation();
 
+    const anim = await importAmod("animation");
+    const util = await importAmod("utility");
+    const anime = new anim.anime(); 
+    const utility = new util.utility();
+    anime.startAnime();
+
     const formData = new FormData();
-    const inputs = await readAllInputs(e.currentTarget);
-    console.log(inputs)
+    //utility.basicFormChecks(e.target);
+    const inputs = await readAllInputs(e.target);
+    console.log(inputs);
     formData.append("inputs",JSON.stringify(inputs))
     fetchInfoWithFilter(formData,"/updateprofile","POST",(e)=>{
       console.log(e);

@@ -2,27 +2,28 @@ const express = require('express');
 const favicon = require('serve-favicon')
 const path = require('path');
 const MDBS = require("./mydirtybs");
+const cookieMan = require("./cookieMan")
 const ws = require('ws');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 
-const formidableMiddleware = require('express-formidable');
+var formidable = require('formidable');
 
 const mydirtybs = new MDBS();
+const cookieManager = new cookieMan();
 const app = express();
 const port = parseInt(process.env.PORT)|| 8080;
 
 const textParser = bodyParser.text({limit:"50mb"});
-
-
-
-
-
-
 const serveStatic = require('serve-static');
 
 
-
+app.get("*",(req,res,next)=>{
+  cookieManager.ipCheck(req,res,next);
+});
+app.post("*",(req,res,next)=>{
+  cookieManager.ipCheck(req,res,next);
+});
 
 
 app.use(favicon(path.join(__dirname, 'frontend', 'favicon.png')))
@@ -34,7 +35,6 @@ app.use("/",serveStatic('frontend', { index: ['index.html', 'index.htm'] }))
 
 
 
-app.get("/",()=>{});
 app.get("/checklogin",[cookieParser(),mydirtybs.checkIfLogIn],(req,res,next)=>{
   res.send({"useris":"in"});
 });
@@ -46,7 +46,22 @@ app.get("/getnotifications",[cookieParser(),mydirtybs.checkIfLogIn],mydirtybs.ge
 app.get("/getfile/:id",[cookieParser()],mydirtybs.getFilePubl);
 
 
-app.post("/updateprofile",[cookieParser(),formidableMiddleware({multiples:true}),mydirtybs.checkIfLogIn],mydirtybs.updateProfile);
+app.post("/updateprofile",[cookieParser(),mydirtybs.checkIfLogIn,(req,res,next)=>{
+  var form = new formidable.IncomingForm({multiples:Infinity,maxFileSize:35*1024*1024,maxFieldsSize:35*1024*1024})
+  form.parse(req, async function(err, fields, files) {
+    const x = await mydirtybs.checkIfLogInToo(req.cookies.makiCookie);
+    if(x.ans==="no"){
+      res.send("<h1>Please log in</h1>")
+    }else{
+      if(err){
+        res.send({"file":"tooBig"})
+      }else{
+        mydirtybs.updateProfile({fields:fields},res,next);
+      }
+    }
+    
+  });
+}]);
 
 
 app.post("/checksource",textParser,mydirtybs.checksource);

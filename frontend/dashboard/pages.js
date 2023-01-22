@@ -21,19 +21,21 @@ class pages {
         document.querySelectorAll(".contactpg")[1].addEventListener("click",addContactPage);
         document.querySelectorAll(".homepg")[0].addEventListener("click",setHomePage);
         document.querySelectorAll(".homepg")[1].addEventListener("click",setHomePage);
+        document.querySelectorAll(".filepg")[0].addEventListener("click",setFilesPage);
         
     }
 }
 
 
-const setHomePage =(e)=>{
+const setHomePage =async(e)=>{
     if(e){
         e.stopPropagation();
         e.preventDefault();
     }
 
-
-    const pg1crd = pg1.cloneNode(true).querySelectorAll(".card")[0];
+    const ele = await importAmod("elements");
+    const elements = new ele.elements();
+    const pg1crd = elements.obj.card;
     const title = pg1crd.querySelectorAll(".card-title")[0];
     const cardlink1 = pg1crd.querySelectorAll(".card-link")[0];
     const cardlink2 = pg1crd.querySelectorAll(".card-link")[1];
@@ -50,11 +52,13 @@ const setHomePage =(e)=>{
 }
 
 
-const addContactPage = (e) =>{
+const addContactPage = async(e) =>{
     e.stopPropagation();
     e.preventDefault();
 
-    const pg1crd = pg1.cloneNode(true).querySelectorAll(".card")[0];
+    const ele = await importAmod("elements");
+    const elements = new ele.elements();
+    const pg1crd = elements.obj.card;
     const title = pg1crd.querySelectorAll(".card-title")[0];
     const cardlink1 = pg1crd.querySelectorAll(".card-link")[0];
     const cardlink2 = pg1crd.querySelectorAll(".card-link")[1];
@@ -93,7 +97,6 @@ const addProfPage = async(e)=>{
     const userName = document.getElementById("cmain").querySelectorAll(".text-muted")[0];
     const imgThumb = document.querySelectorAll(".profile-user-img")[0];
     const card = document.querySelectorAll(".callout-info")[0];
-    console.log(webData);
     if(webData.userObj.firstName===null||webData.userObj.firstName===undefined||webData.userObj.firstName==="undefined"){
         fullName.innerHTML = "<span><em>No Name Given</em></span>";
     }else{
@@ -135,10 +138,39 @@ const addProfPage = async(e)=>{
 
     const serv = await importAmod("server");
     const server = new serv.server();
+    document.getElementById("inputName").setAttribute("readonly",true);
    // document.getElementById("profform").addEventListener("click",server.processProfileForm)
     document.getElementById("inputPic").addEventListener("input",server.getFile)
     document.getElementById("profform").addEventListener("submit",server.processProfileForm) 
-    updatesOnNavigation("Profile")
+    updatesOnNavigation("Profile");
+}
+
+const setFilesPage =async(e)=>{
+    if(e){
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
+    const ele = await importAmod("elements");
+    const elements = new ele.elements();
+    const user = await importAmod("user");
+    const userInfo = new user.user();
+    const files = userInfo.userObj.files.split(", ");
+    const pg1crd = elements.obj.card;
+    const title = pg1crd.querySelectorAll(".card-title")[0];
+    const cardlink1 = pg1crd.querySelectorAll(".card-link")[0];
+    const cardlink2 = pg1crd.querySelectorAll(".card-link")[1];
+    const cardtext = pg1crd.querySelectorAll(".card-text")[0];
+    title.innerHTML = "Files ("+files.length+")";
+    cardlink1.innerHTML = "";
+    cardlink2.innerHTML = "";
+    cardtext.innerHTML = elements.obj.files.innerHTML;
+    document.getElementById("cmain").innerHTML = "";
+    document.getElementById("cmain").appendChild(pg1crd);
+    pg1crd.style.width = "100%";
+    console.log(files)
+    updatesOnNavigation("Files");
+    
 }
 
 
@@ -154,11 +186,13 @@ const setMenuStuff =()=>{
     const nav1 = document.querySelectorAll(".nav-sidebar")[0].querySelectorAll("ul")[0];
     const nav2 = document.querySelectorAll(".nav-sidebar")[0].querySelectorAll("ul")[1];
     const nav3 = document.querySelectorAll(".nav-sidebar")[0].querySelectorAll("ul")[2];
-    const arrNav = [nav1.parentNode,nav2.parentNode,nav3.parentNode];
+    const nav4 = document.querySelectorAll(".nav-sidebar")[0].querySelectorAll("ul")[3];
+    const arrNav = [nav1.parentNode,nav2.parentNode,nav3.parentNode,nav4.parentNode];
     sideMenu.one = arrNav;
     const navkids = nav1.querySelectorAll(".nav-item");
     const navkids1 = nav2.querySelectorAll(".nav-item");
     const navkids2 = nav3.querySelectorAll(".nav-item");
+    const navkids3 = nav4.querySelectorAll(".nav-item");
     navkids.forEach(navKid=>{
         navKid.addEventListener("click",menuOneActiveTheming)
     })
@@ -170,6 +204,9 @@ const setMenuStuff =()=>{
     })
     arrNav.forEach(navKid=>{
         navKid.addEventListener("click",menuOneActiveTheming2)
+    })
+    navkids3.forEach(navKid=>{
+        navKid.addEventListener("click",menuOneActiveTheming3)
     })
 }
 
