@@ -91,18 +91,23 @@ const processProfileForm = async (e)=>{
     const util = await importAmod("utility");
     const anime = new anim.anime(); 
     const utility = new util.utility();
-    anime.startAnime();
-
+    
     const formData = new FormData();
-    //utility.basicFormChecks(e.target);
+    const gostat = utility.basicFormChecks(e.target);
     const inputs = await readAllInputs(e.target);
-    console.log(inputs);
-    formData.append("inputs",JSON.stringify(inputs))
-    fetchInfoWithFilter(formData,"/updateprofile","POST",(e)=>{
-      console.log(e);
-      alert("Profile Updated Succesfully!");
-      window.location.reload();
-    })
+    if(gostat==="yes"){
+      formData.append("inputs",JSON.stringify(inputs));
+      anime.startAnime();
+      fetchInfoWithFilter(formData,"/updateprofile","POST",(e)=>{
+        console.log(e);
+        alert("Profile Updated Succesfully!");
+        window.location.reload();
+      })
+      console.log("ready to go.....")
+    }else{
+      console.log("Some input error goes brrr....XD")
+    }
+  
     
 }
 
@@ -110,18 +115,18 @@ const readAllInputs = async(form)=>{
   const arr = [];
   form.querySelectorAll("input").forEach(async(input)=>{
     const name = input.id;
-    const value = {};
     if(name==="inputPic"){
       upFiles.forEach(obj=>{
         if(obj.fileSrc===name){
-          value.v = obj;
+          arr.push({name,obj})
         }
       })
+    }else if(name==="cheekyone"){
+    //
     }else{
-      value.v = input.value;
+      const x = input.value;
+      arr.push({name,x})
     }
-    const obj = value.v;
-    arr.push({name,obj})
   })
   return arr;
 }

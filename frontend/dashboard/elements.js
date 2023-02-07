@@ -121,7 +121,7 @@ eleObj.profileCols = `<div class="col-md-3">
         <div class="form-group row">
             <label for="inputPic" class="col-sm-2 col-form-label">Profile Picture</label>
             <div class="col-sm-10">
-            <img src="./icons/noprofile.png" width="169px">
+            <img id="inputhumb" src="./icons/noprofile.png" width="169px">
               <input type="file" class="form-control" id="inputPic" name="inputPic" placeholder="Pic" accept="image/png, image/jpeg, image/webp, image/gif">
             </div>
           </div>
@@ -153,7 +153,7 @@ eleObj.profileCols = `<div class="col-md-3">
             <div class="offset-sm-2 col-sm-10">
               <div class="checkbox">
                 <label>
-                  <input type="checkbox"> I agree to the <a href="#">terms and conditions</a>
+                  <input type="checkbox" name="cheekyone" id="cheekyone"> I agree to the <a href="#">terms and conditions</a>
                 </label>
               </div>
             </div>
@@ -217,3 +217,57 @@ eleObj.files = (()=>{
 </div>`;
 return card;
 })()
+
+
+eleObj.picBox = (()=>{
+  const card = document.createElement("div");
+  card.innerHTML = `<ul class="mailbox-attachments d-flex align-items-stretch clearfix">
+  <li>
+    <span class="mailbox-attachment-icon"><i class="far fa-file-pdf"></i></span>
+
+    <div class="mailbox-attachment-info">
+      <a href="#" class="mailbox-attachment-name"><i class="fas fa-paperclip"></i> Sep2014-report.pdf</a>
+          <span class="mailbox-attachment-size clearfix mt-1">
+            <span>1,245 KB</span>
+            <a href="#" class="btn btn-default btn-sm float-right"><i class="fas fa-cloud-download-alt"></i></a>
+          </span>
+    </div>
+  </li>
+  <li>
+    <span class="mailbox-attachment-icon"><i class="far fa-file-word"></i></span>
+
+    <div class="mailbox-attachment-info">
+      <a href="#" class="mailbox-attachment-name"><i class="fas fa-paperclip"></i> App Description.docx</a>
+          <span class="mailbox-attachment-size clearfix mt-1">
+            <span>1,245 KB</span>
+            <a href="#" class="btn btn-default btn-sm float-right"><i class="fas fa-cloud-download-alt"></i></a>
+          </span>
+    </div>
+  </li>
+  <li>
+    <span class="mailbox-attachment-icon has-img"><img src="../icons/dot.webp" alt="Attachment"></span>
+
+    <div class="mailbox-attachment-info">
+      <a href="#" class="mailbox-attachment-name"><i class="fas fa-camera"></i> photo1.png</a>
+          <span class="mailbox-attachment-size clearfix mt-1">
+            <span>2.67 MB</span>
+            <a href="#" class="btn btn-default btn-sm float-right"><i class="fas fa-cloud-download-alt"></i></a>
+          </span>
+    </div>
+  </li>
+  <li>
+    <span class="mailbox-attachment-icon has-img"><img src="../icons/dot.webp" alt="Attachment"></span>
+
+    <div class="mailbox-attachment-info">
+      <a href="#" class="mailbox-attachment-name"><i class="fas fa-camera"></i> photo2.png</a>
+          <span class="mailbox-attachment-size clearfix mt-1">
+            <span>1.9 MB</span>
+            <a href="#" class="btn btn-default btn-sm float-right"><i class="fas fa-cloud-download-alt"></i></a>
+          </span>
+    </div>
+  </li>
+</ul>`;
+return card;
+})()
+
+//write code to separate commas in a number

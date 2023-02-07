@@ -107,6 +107,7 @@ const addProfPage = async(e)=>{
         imgThumb.src = "./icons/noprofile.png";
     }else{
         imgThumb.src = webData.userObj.thumbnail;
+        document.getElementById("inputhumb").src = webData.userObj.thumbnail; 
     }
 
     
@@ -157,6 +158,7 @@ const setFilesPage =async(e)=>{
     const userInfo = new user.user();
     const files = userInfo.userObj.files.split(", ");
     const pg1crd = elements.obj.card;
+    const filecrd = elements.obj.picBox;
     const title = pg1crd.querySelectorAll(".card-title")[0];
     const cardlink1 = pg1crd.querySelectorAll(".card-link")[0];
     const cardlink2 = pg1crd.querySelectorAll(".card-link")[1];
@@ -167,6 +169,7 @@ const setFilesPage =async(e)=>{
     cardtext.innerHTML = elements.obj.files.innerHTML;
     document.getElementById("cmain").innerHTML = "";
     document.getElementById("cmain").appendChild(pg1crd);
+    pg1crd.appendChild(filecrd);
     pg1crd.style.width = "100%";
     console.log(files)
     updatesOnNavigation("Files");

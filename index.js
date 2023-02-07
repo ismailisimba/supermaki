@@ -1,20 +1,20 @@
 const express = require('express');
-const favicon = require('serve-favicon')
+const favicon = require('serve-favicon');
 const path = require('path');
 const MDBS = require("./mydirtybs");
-const cookieMan = require("./cookieMan")
+const cookieMan = require("./cookieMan");
 const ws = require('ws');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 
-var formidable = require('formidable');
+const formidable = require('formidable');
 
 const mydirtybs = new MDBS();
 const cookieManager = new cookieMan();
 const app = express();
 const port = parseInt(process.env.PORT)|| 8080;
 
-const textParser = bodyParser.text({limit:"50mb"});
+const textParser = bodyParser.text({limit:"35mb"});
 const serveStatic = require('serve-static');
 
 
