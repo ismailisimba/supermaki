@@ -57,3 +57,38 @@ ul.nav-treeview{
     align-items: flex-start !important;
     flex-wrap: wrap !important;
 }
+
+.mailbox-attachment-icon.has-img {
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    min-height: 132.5px;
+}
+
+.w-120{
+    width: 169px !important;
+}
+
+.imgindex{
+    float: right;
+    color: #666;
+    font-weight: 700;
+}
+
+
+
+
+
+
+
+
+
+@media (max-width: 991px) {
+
+    .filecontainerone{
+        flex-flow: column !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+    }
+
+
+    }

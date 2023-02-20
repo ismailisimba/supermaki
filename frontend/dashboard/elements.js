@@ -197,6 +197,8 @@ eleObj.files = (()=>{
   <div class="btn-group w-100 mb-2">
     <a class="btn btn-info active" href="javascript:void(0)" data-filter="all"> All items </a>
   </div>
+  <div class="w-120"><button type="button" class="btn btn-block btn-danger" id="delete">Delete Files</button></div>
+  
   <!--<div class="mb-2">
     <a class="btn btn-secondary" href="javascript:void(0)" data-shuffle=""> Shuffle items </a>
     <div class="float-right">
@@ -259,6 +261,7 @@ eleObj.picBox = (()=>{
           <span class="mailbox-attachment-size clearfix mt-1">
             <span class="filesize" >1.9 MB</span>
             <!--<a href="#" class="btn btn-default btn-sm float-right"><i class="fas fa-cloud-download-alt"></i></a>-->
+            <span class="imgindex">XX</span>
           </span>
     </div>
   </li>

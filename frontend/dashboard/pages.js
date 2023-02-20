@@ -108,8 +108,11 @@ const addProfPage = async(e)=>{
     if(webData.userObj.thumbnail===null||webData.userObj.firstName===undefined){
         imgThumb.src = "./icons/noprofile.png";
     }else{
-        imgThumb.src = webData.userObj.thumbnail;
-        document.getElementById("inputhumb").src = webData.userObj.thumbnail; 
+        //https://expresstoo-jzam6yvx3q-ez.a.run.app/getfile/7343128620230122214434_972
+        //const serverURL = window.location.hostname.includes("127.0.0.1")?"http://127.0.0.1:8080":"https://expresstoo-jzam6yvx3q-ez.a.run.app"
+        const deSrc = window.location.hostname.includes("127.0.0.1")?webData.userObj.thumbnail.replace("https://expresstoo-jzam6yvx3q-ez.a.run.app","http://127.0.0.1:8080"):webData.userObj.thumbnail
+        document.getElementById("inputhumb").src = deSrc; 
+        imgThumb.src = deSrc;
     }
 
     

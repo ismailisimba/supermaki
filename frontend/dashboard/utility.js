@@ -42,6 +42,7 @@ const paintFilesOne = (ele1,ele2,files)=>{
     container.innerHTML = "";
     container.classList.add("filecontainerone");
    document.getElementById("cmain").querySelectorAll(".card-body")[0].appendChild(container);
+   var counter = 1;
    files.forEach(async (file)=>{
     const serv = await importAmod("server");
     const server = new serv.server();
@@ -56,8 +57,11 @@ const paintFilesOne = (ele1,ele2,files)=>{
           nwCard.querySelectorAll(".mailbox-attachment-name")[0].innerHTML = fdeets.metadata.ogname
           nwCard.querySelectorAll(".mailbox-attachment-name")[0].href = file;
           nwCard.querySelectorAll(".filesize")[0].innerHTML = Number.parseFloat(fdeets.size/(1024*1024)).toFixed(2) +" MB";
-          nwCard.querySelectorAll(".filethumb")[0].src = file;
+          nwCard.querySelectorAll(".imgindex")[0].innerHTML = counter;
+          const deSrc = window.location.hostname.includes("127.0.0.1")?file.replace("https://expresstoo-jzam6yvx3q-ez.a.run.app","http://127.0.0.1:8080"):file;
+          nwCard.querySelectorAll(".filethumb")[0].src = deSrc;
           container.appendChild(nwCard);
+          counter++;
         }
     )
     

@@ -60,7 +60,8 @@ const paintBaseUserInfo = () =>{
     if(userObj.thumbnail===null||userObj.firstName===undefined){
         imgThumb.src = "./icons/noprofile.png";
     }else{
-        imgThumb.src = userObj.thumbnail;
+        const deSrc = window.location.hostname.includes("127.0.0.1")?userObj.thumbnail.replace("https://expresstoo-jzam6yvx3q-ez.a.run.app","http://127.0.0.1:8080"):userObj.thumbnail
+        imgThumb.src = deSrc;
     }
     username.innerHTML = userObj.username;
 }
