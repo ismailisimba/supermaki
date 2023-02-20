@@ -36,6 +36,7 @@ const setHomePage =async(e)=>{
     const ele = await importAmod("elements");
     const elements = new ele.elements();
     const pg1crd = elements.obj.card;
+    pg1crd.querySelectorAll("ul").forEach(e=>e.remove())
     const title = pg1crd.querySelectorAll(".card-title")[0];
     const cardlink1 = pg1crd.querySelectorAll(".card-link")[0];
     const cardlink2 = pg1crd.querySelectorAll(".card-link")[1];
@@ -59,6 +60,7 @@ const addContactPage = async(e) =>{
     const ele = await importAmod("elements");
     const elements = new ele.elements();
     const pg1crd = elements.obj.card;
+    pg1crd.querySelectorAll("ul").forEach(e=>e.remove())
     const title = pg1crd.querySelectorAll(".card-title")[0];
     const cardlink1 = pg1crd.querySelectorAll(".card-link")[0];
     const cardlink2 = pg1crd.querySelectorAll(".card-link")[1];
@@ -155,9 +157,12 @@ const setFilesPage =async(e)=>{
     const ele = await importAmod("elements");
     const elements = new ele.elements();
     const user = await importAmod("user");
+    const uti = await importAmod("utility");
     const userInfo = new user.user();
+    const utility = new uti.utility();
     const files = userInfo.userObj.files.split(", ");
     const pg1crd = elements.obj.card;
+    pg1crd.querySelectorAll("ul").forEach(e=>e.remove())
     const filecrd = elements.obj.picBox;
     const title = pg1crd.querySelectorAll(".card-title")[0];
     const cardlink1 = pg1crd.querySelectorAll(".card-link")[0];
@@ -169,9 +174,8 @@ const setFilesPage =async(e)=>{
     cardtext.innerHTML = elements.obj.files.innerHTML;
     document.getElementById("cmain").innerHTML = "";
     document.getElementById("cmain").appendChild(pg1crd);
-    pg1crd.appendChild(filecrd);
+    utility.paintFilesOne(pg1crd,filecrd,files);
     pg1crd.style.width = "100%";
-    console.log(files)
     updatesOnNavigation("Files");
     
 }

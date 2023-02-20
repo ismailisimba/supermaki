@@ -6,6 +6,7 @@ class utility {
     
     constructor(){
         this.basicFormChecks = basicFormChecks;  
+        this.paintFilesOne = paintFilesOne;
     }
 
 }
@@ -28,4 +29,45 @@ const basicFormChecks = (form)=>{
        // console.log({type,value});    
     })
     return rtval.go;
+}
+
+
+const paintFilesOne = (ele1,ele2,files)=>{
+    const x = document.createElement("p");
+    const container = ele2.querySelectorAll("ul")[0].cloneNode(true);
+    const card = ele2.querySelectorAll("li")[3].cloneNode(true);
+    x.innerHTML = "jdbvjbdv";
+    console.log(ele2);
+    ele1.querySelectorAll("ul")[0]&&ele1.querySelectorAll("ul")[0].nodeType?ele1.querySelectorAll("ul")[0].remove():"";
+    container.innerHTML = "";
+    container.classList.add("filecontainerone");
+   document.getElementById("cmain").querySelectorAll(".card-body")[0].appendChild(container);
+   files.forEach(async (file)=>{
+    const serv = await importAmod("server");
+    const server = new serv.server();
+    server.startFetch(
+        JSON.stringify({}),
+        `/getmetadata/${file.split("getfile/")[1]}`,
+        "GET",
+        (r)=>{
+          console.log(JSON.parse(r));
+          const fdeets = JSON.parse(r);
+          const nwCard = card.cloneNode(true);
+          nwCard.querySelectorAll(".mailbox-attachment-name")[0].innerHTML = fdeets.metadata.ogname
+          nwCard.querySelectorAll(".mailbox-attachment-name")[0].href = file;
+          nwCard.querySelectorAll(".filesize")[0].innerHTML = Number.parseFloat(fdeets.size/(1024*1024)).toFixed(2) +" MB";
+          nwCard.querySelectorAll(".filethumb")[0].src = file;
+          container.appendChild(nwCard);
+        }
+    )
+    
+   })
+}
+
+
+const importAmod = (name)=>{
+    return (async()=>{
+        const modEd = await import("./"+`${name}`+".js");
+        return modEd;
+    })();
 }

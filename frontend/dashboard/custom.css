@@ -49,3 +49,11 @@ ul.nav-treeview{
     border: .42px solid white;
     border-radius: .29rem;
 }
+
+.filecontainerone{
+    display: flex !important;
+    flex-flow: row !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+}

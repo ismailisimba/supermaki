@@ -26,6 +26,7 @@ class mydirtybase {
         this.getNotifications = getNotifications;
         this.updateProfile = updateProfile;
         this.getFilePubl = getFilePubl;
+        this.getFileMeta = getFileMeta;
     }
 }
 
@@ -389,6 +390,15 @@ const getFilePubl =  async(req,res,next) =>{
 
 }
 
+const getFileMeta =  async(req,res,next) =>{
+  const file = myBucket.file(req.params.id);
+  const meta = await file.getMetadata().then(function(data) {
+      const metadata = data[0];
+      const apiResponse = data[1];
+      return metadata;
+    });
+    res.send(meta);
+}
 
 
 const updateUserFileList = async (user,file)=>{

@@ -196,12 +196,8 @@ eleObj.files = (()=>{
   card.innerHTML = `<div>
   <div class="btn-group w-100 mb-2">
     <a class="btn btn-info active" href="javascript:void(0)" data-filter="all"> All items </a>
-    <a class="btn btn-info" href="javascript:void(0)" data-filter="1"> Category 1 (WHITE) </a>
-    <a class="btn btn-info" href="javascript:void(0)" data-filter="2"> Category 2 (BLACK) </a>
-    <a class="btn btn-info" href="javascript:void(0)" data-filter="3"> Category 3 (COLORED) </a>
-    <a class="btn btn-info" href="javascript:void(0)" data-filter="4"> Category 4 (COLORED, BLACK) </a>
   </div>
-  <div class="mb-2">
+  <!--<div class="mb-2">
     <a class="btn btn-secondary" href="javascript:void(0)" data-shuffle=""> Shuffle items </a>
     <div class="float-right">
       <select class="custom-select" style="width: auto;" data-sortorder="">
@@ -213,7 +209,7 @@ eleObj.files = (()=>{
         <a class="btn btn-default" href="javascript:void(0)" data-sortdesc=""> Descending </a>
       </div>
     </div>
-  </div>
+  </div>-->
 </div>`;
 return card;
 })()
@@ -256,13 +252,13 @@ eleObj.picBox = (()=>{
     </div>
   </li>
   <li>
-    <span class="mailbox-attachment-icon has-img"><img src="../icons/dot.webp" alt="Attachment"></span>
+    <span class="mailbox-attachment-icon has-img"><img class="filethumb" src="../icons/dot.webp" alt="Attachment"></span>
 
     <div class="mailbox-attachment-info">
-      <a href="#" class="mailbox-attachment-name"><i class="fas fa-camera"></i> photo2.png</a>
+      <a href="#" target="_blank" class="mailbox-attachment-name"><i class="fas fa-camera"></i> photo2.png</a>
           <span class="mailbox-attachment-size clearfix mt-1">
-            <span>1.9 MB</span>
-            <a href="#" class="btn btn-default btn-sm float-right"><i class="fas fa-cloud-download-alt"></i></a>
+            <span class="filesize" >1.9 MB</span>
+            <!--<a href="#" class="btn btn-default btn-sm float-right"><i class="fas fa-cloud-download-alt"></i></a>-->
           </span>
     </div>
   </li>
