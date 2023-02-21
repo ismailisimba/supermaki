@@ -74,6 +74,21 @@ ul.nav-treeview{
     font-weight: 700;
 }
 
+.mailbox-attachment-info{
+    height: 126px;
+    overflow-y: hidden;
+    overflow-x: hidden;
+    display: flex;
+    flex-flow: column;
+    justify-content: space-between;
+    align-items: stretch;
+}
+
+.mailbox-attachments li {
+    margin-bottom: 36px !important;
+
+}
+
 
 
 

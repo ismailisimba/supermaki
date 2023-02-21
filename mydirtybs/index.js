@@ -397,6 +397,7 @@ const getFileMeta =  async(req,res,next) =>{
       const apiResponse = data[1];
       return metadata;
     });
+    meta.metadata.inaccess = "***";
     res.send(meta);
 }
 
