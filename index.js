@@ -71,6 +71,9 @@ app.post("/login",textParser,mydirtybs.logIn);
 app.post("/signup",textParser,mydirtybs.signUp);
 
 app.get("/scrap/:id",textParser,scrapy.geturl);
+app.get("/oldscrap/:id",textParser,scrapy.getoldscraps);
+app.get("/getscrap/:id",textParser,scrapy.getscrap);
+app.get("/comparescrap/:url/:picUrl",textParser,scrapy.comparescraps)
 
 
 
