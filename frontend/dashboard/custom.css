@@ -62,6 +62,7 @@ ul.nav-treeview{
     overflow-x: hidden !important;
     overflow-y: hidden !important;
     min-height: 132.5px;
+    background-color: #666;
 }
 
 .w-120{
@@ -86,10 +87,31 @@ ul.nav-treeview{
 
 .mailbox-attachments li {
     margin-bottom: 36px !important;
-
+    border: 1px solid #b7aeae !important;
+    position:  relative !important;
 }
 
+.customoverlay{
+    visibility:collapse;
+    position: absolute;
+    top: 0px;
+    margin: 0 auto;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    opacity: 1;
+    z-index: 1;
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+}
 
+.checkimg{
+    background-color: #fff;
+    border-radius: 9px;
+    box-shadow: 1.69px 1.69px 1px #666;
+}
 
 
 

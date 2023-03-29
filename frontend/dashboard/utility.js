@@ -37,7 +37,7 @@ const paintFilesOne = (ele1,ele2,files)=>{
     const container = ele2.querySelectorAll("ul")[0].cloneNode(true);
     const card = ele2.querySelectorAll("li")[3].cloneNode(true);
     x.innerHTML = "jdbvjbdv";
-    console.log(ele2);
+    ele1.querySelectorAll("#select")[0].addEventListener("click",setupForFileDeletion)
     ele1.querySelectorAll("ul")[0]&&ele1.querySelectorAll("ul")[0].nodeType?ele1.querySelectorAll("ul")[0].remove():"";
     container.innerHTML = "";
     container.classList.add("filecontainerone");
@@ -51,7 +51,6 @@ const paintFilesOne = (ele1,ele2,files)=>{
         `/getmetadata/${file.split("getfile/")[1]}`,
         "GET",
         (r)=>{
-          console.log(JSON.parse(r));
           const fdeets = JSON.parse(r);
           const nwCard = card.cloneNode(true);
           nwCard.querySelectorAll(".mailbox-attachment-name")[0].innerHTML = fdeets.metadata.ogname
@@ -66,6 +65,17 @@ const paintFilesOne = (ele1,ele2,files)=>{
     )
     
    })
+}
+
+
+
+const setupForFileDeletion = (e) => {
+    const files = document.querySelectorAll(".customoverlay");
+    files.forEach(file=>{
+        const style = window.getComputedStyle(file).getPropertyValue("visibility");
+        file.style.visibility = style==="visible"?"collapse":"visible";
+    }) 
+    
 }
 
 

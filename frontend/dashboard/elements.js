@@ -197,7 +197,8 @@ eleObj.files = (()=>{
   <div class="btn-group w-100 mb-2">
     <a class="btn btn-info active" href="javascript:void(0)" data-filter="all"> All items </a>
   </div>
-  <div class="w-120"><button type="button" class="btn btn-block btn-danger" id="delete">Delete Files</button></div>
+  <div class="w-120"><button type="button" class="btn btn-block btn-danger" id="select">Select Files</button></div>
+  <div class="w-120"><button type="button" class="btn btn-block btn-outline-dark" id="delete">Delete Selected Files</button></div>
   
   <!--<div class="mb-2">
     <a class="btn btn-secondary" href="javascript:void(0)" data-shuffle=""> Shuffle items </a>
@@ -264,6 +265,7 @@ eleObj.picBox = (()=>{
             <span class="imgindex">XX</span>
           </span>
     </div>
+    <span class="customoverlay"><img class="checkimg" src="../icons/checkbox.png" alt="nocheck"></span>
   </li>
 </ul>`;
 return card;

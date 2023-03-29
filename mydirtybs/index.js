@@ -483,7 +483,8 @@ const uploadFile =async (obj,res,folder)=>{
           }else{
           }
         })
-        imgObj.publUrL = "https://expresstoo-jzam6yvx3q-ez.a.run.app/getfile/"+imgObj.url.split("makiv1/")[1];
+        imgObj.TMP = "https://expresstoo-jzam6yvx3q-ez.a.run.app/getfile/";
+        imgObj.publUrL = imgObj.TMP+imgObj.url.split("makiv1/")[1];
         return imgObj;
     })
     return x;

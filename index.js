@@ -3,6 +3,7 @@ const favicon = require('serve-favicon');
 const path = require('path');
 const MDBS = require("./mydirtybs");
 const cookieMan = require("./cookieMan");
+const webscrap = require("./webscrap");
 const ws = require('ws');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
@@ -11,6 +12,7 @@ const formidable = require('formidable');
 
 const mydirtybs = new MDBS();
 const cookieManager = new cookieMan();
+const scrapy = new webscrap();
 const app = express();
 const port = parseInt(process.env.PORT)|| 8080;
 
@@ -28,7 +30,6 @@ app.post("*",(req,res,next)=>{
 
 app.use(favicon(path.join(__dirname, 'frontend', 'favicon.png')))
 app.use("/",serveStatic('frontend', { index: ['index.html', 'index.htm'] }))
-
 
 
 
@@ -68,6 +69,8 @@ app.post("/updateprofile",[cookieParser(),mydirtybs.checkIfLogIn,(req,res,next)=
 app.post("/checksource",textParser,mydirtybs.checksource);
 app.post("/login",textParser,mydirtybs.logIn);
 app.post("/signup",textParser,mydirtybs.signUp);
+
+app.get("/scrap/:id",textParser,scrapy.geturl);
 
 
 

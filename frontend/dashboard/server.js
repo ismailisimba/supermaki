@@ -106,9 +106,7 @@ const processProfileForm = async (e)=>{
       console.log("ready to go.....")
     }else{
       console.log("Some input error goes brrr....XD")
-    }
-  
-    
+    }    
 }
 
 const readAllInputs = async(form)=>{
@@ -117,13 +115,9 @@ const readAllInputs = async(form)=>{
     const name = input.id;
     if(name==="inputPic"){
       upFiles.forEach(obj=>{
-        if(obj.fileSrc===name){
-          arr.push({name,obj})
-        }
+        if(obj.fileSrc===name){arr.push({name,obj})}
       })
-    }else if(name==="cheekyone"){
-    //
-    }else{
+    }else if(name==="cheekyone"){}else{
       const x = input.value;
       arr.push({name,x})
     }
