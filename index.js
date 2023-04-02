@@ -49,7 +49,7 @@ app.get("/getmetadata/:id",[cookieParser()],mydirtybs.getFileMeta);
 
 
 app.post("/updateprofile",[cookieParser(),mydirtybs.checkIfLogIn,(req,res,next)=>{
-  var form = new formidable.IncomingForm({multiples:Infinity,maxFileSize:35*1024*1024,maxFieldsSize:35*1024*1024})
+  var form = new formidable.IncomingForm({multiples:Infinity,maxFileSize:135*1024*1024,maxFieldsSize:135*1024*1024})
   form.parse(req, async function(err, fields, files) {
     const x = await mydirtybs.checkIfLogInToo(req.cookies.makiCookie);
     if(x.ans==="no"){

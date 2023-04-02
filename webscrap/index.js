@@ -67,10 +67,14 @@ const checksource = async (req,res,next)=>{
 }
 
 const geturl = async (req,res,next)=>{
+
     const url = req.params.id;
+    if(isValidHttpUrl(url)){
+
+    
     let domain = (new URL(url));
     domain = domain.hostname;
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({args: ['--no-sandbox']});
     const page = await browser.newPage();
     const date = cookieManager.customDateFormater();
     const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
@@ -88,10 +92,14 @@ const geturl = async (req,res,next)=>{
 
 
     res.send({domain,url,currentScreenshotUrl})
+  }else{
+    res.send({"notValidUrl":url})
+  }
 }
 
 const getoldscraps = async (req,res,next)=>{
     const url = req.params.id;
+    if(isValidHttpUrl(url)){
     let domain = (new URL(url));
     domain = domain.hostname;
     const searchTerm = domain.replaceAll(".","_")
@@ -112,6 +120,9 @@ const getoldscraps = async (req,res,next)=>{
         const returnVal = {"no":"files"}
         res.send({domain,returnVal})
       }
+    }else{
+      res.send({"notValidUrl":url})
+    }
 }
 
 const getscrap =  async(req,res,next) =>{
@@ -137,6 +148,7 @@ const getscrap =  async(req,res,next) =>{
 const comparescraps = async(req,res,next)=>{
     const obj ={} 
     const urlToScreen = req.params.url;
+    if(isValidHttpUrl(urlToScreen)){
     const oldScreen =  req.params.picUrl;
     const file = myBucket.file(oldScreen);
     let domain = (new URL(urlToScreen));
@@ -146,7 +158,7 @@ const comparescraps = async(req,res,next)=>{
     // Download the file from the bucket
     await file.download({ destination: filename });
     
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({args: ['--no-sandbox']});
     const page = await browser.newPage();
     const date = cookieManager.customDateFormater();
     const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
@@ -190,9 +202,23 @@ const comparescraps = async(req,res,next)=>{
       console.log('No differences found');
       obj["numOfDifPix"] = null;
     }
-
+      }else{
+    obj.res = {"notValidUrl":urlToScreen};
+      }
     res.send(obj)
 }
 
+
+const isValidHttpUrl = (string)=>{
+  let url;
+  
+  try {
+    url = new URL(string);
+  } catch (_) {
+    return false;  
+  }
+
+  return url.protocol === "http:" || url.protocol === "https:";
+}
 
 module.exports = webscrap;
