@@ -163,7 +163,7 @@ const getThisCookie = async (cookieVal)=>{
 
 
 const ipCheck = (req,res,next)=>{
-  const origin = typeof req.headers.origin==="undefined"||req.headers.origin==="undefined"?"*":req.headers.origin.split("://")[1].toString();
+  const origin = typeof req.headers.origin==="undefined"||req.headers.origin==="undefined"?"*":req.headers.origin.toString();
     const corsWhitelist = [
       'https://ismailisimba.github.io',
       'http://127.0.0.1:5050',
