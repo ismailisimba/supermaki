@@ -74,9 +74,10 @@ const geturl = async (req,res,next)=>{
     
     let domain = (new URL(url));
     domain = domain.hostname;
-    const browser = await puppeteer.launch({args: ['--no-sandbox']});
+    const browser = {};
+    browser.b = await puppeteer.launch({args: ['--no-sandbox']});
     const page = {};
-    page.b = await browser.newPage();
+    page.b = await browser.b.newPage();
     const date = cookieManager.customDateFormater();
     const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
     const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
@@ -85,7 +86,8 @@ const geturl = async (req,res,next)=>{
     await page.b.screenshot({path: currentScreenshotPath, fullPage:true});
 
 
-    await Promise.all([
+    const ret = {};
+    ret.r = await Promise.all([
         myBucket.upload(currentScreenshotPath, { destination: currentScreenshotName }),
       ]);
 
@@ -94,6 +96,8 @@ const geturl = async (req,res,next)=>{
 
     res.send({domain,url,currentScreenshotUrl})
     page.b = null;
+    browser.b = null;
+    ret.r = null;
   }else{
     res.send({"notValidUrl":url})
   }
