@@ -75,13 +75,14 @@ const geturl = async (req,res,next)=>{
     let domain = (new URL(url));
     domain = domain.hostname;
     const browser = await puppeteer.launch({args: ['--no-sandbox']});
-    const page = await browser.newPage();
+    const page = {};
+    page.b = await browser.newPage();
     const date = cookieManager.customDateFormater();
     const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
     const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
 
-    await page.goto(url,{waitUntil:"networkidle2"});
-    await page.screenshot({path: currentScreenshotPath, fullPage:true});
+    await page.b.goto(url,{waitUntil:"networkidle2"});
+    await page.b.screenshot({path: currentScreenshotPath, fullPage:true});
 
 
     await Promise.all([
@@ -92,6 +93,7 @@ const geturl = async (req,res,next)=>{
 
 
     res.send({domain,url,currentScreenshotUrl})
+    page.b = null;
   }else{
     res.send({"notValidUrl":url})
   }
