@@ -163,7 +163,7 @@ const getThisCookie = async (cookieVal)=>{
 
 
 const ipCheck = (req,res,next)=>{
-  const origin = req.headers.origin==="undefined"||req.headers.origin==="undefined"?"*":req.headers.origin.split("://")[1];
+  const origin = typeof req.headers.origin==="undefined"||req.headers.origin==="undefined"?"*":req.headers.origin.split("://")[1];
   console.log(req.headers);
   console.log(origin);
 
