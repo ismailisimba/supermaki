@@ -75,7 +75,7 @@ const geturl = async (req,res,next)=>{
     let domain = (new URL(url));
     domain = domain.hostname;
     const browser = {};
-    browser.b = await puppeteer.launch({args: ['--no-sandbox']});
+    browser.b = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true});
     const page = {};
     page.b = await browser.b.newPage();
     const date = cookieManager.customDateFormater();
