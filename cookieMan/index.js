@@ -165,10 +165,10 @@ const getThisCookie = async (cookieVal)=>{
 const ipCheck = (req,res,next)=>{
   const origin = typeof req.headers.origin==="undefined"||req.headers.origin==="undefined"?"*":req.headers.origin.split("://")[1].toString();
     const corsWhitelist = [
-      'ismailisimba.github.io',
-      '127.0.0.1:5050',
-      '127.0.0.1:8080',
-      'expresstoo-jzam6yvx3q-ez.a.run.app'
+      'https://ismailisimba.github.io',
+      'http://127.0.0.1:5050',
+      'http://127.0.0.1:8080',
+      'https://expresstoo-jzam6yvx3q-ez.a.run.app'
   ];
   if (corsWhitelist.indexOf(origin) !== -1) {
       res.append('Access-Control-Allow-Origin', origin);
