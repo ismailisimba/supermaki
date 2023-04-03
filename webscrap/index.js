@@ -71,6 +71,9 @@ const geturl = async (req,res,next)=>{
     const url = req.params.id;
     if(isValidHttpUrl(url)){
 
+
+      try{
+
     
     let domain = (new URL(url));
     domain = domain.hostname;
@@ -99,6 +102,10 @@ const geturl = async (req,res,next)=>{
     page.b = null;
     browser.b = null;
     ret.r = null;
+    }catch(e){
+      res.send(e);
+    }
+
   }else{
     res.send({"notValidUrl":url})
   }
