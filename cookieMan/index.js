@@ -163,6 +163,9 @@ const getThisCookie = async (cookieVal)=>{
 
 
 const ipCheck = (req,res,next)=>{
+  const origin = req.headers.origin==="undefined"||req.headers.origin==="undefined"?"*":req.headers.origin.split("://")[1];
+  console.log(req.headers);
+  console.log(origin);
 
     const corsWhitelist = [
       'ismailisimba.github.io',
@@ -170,11 +173,12 @@ const ipCheck = (req,res,next)=>{
       '127.0.0.1:8080',
       'expresstoo-jzam6yvx3q-ez.a.run.app'
   ];
-  if (corsWhitelist.indexOf(req.headers.host) !== -1) {
-      res.append('Access-Control-Allow-Origin', req.headers.host);
+  if (corsWhitelist.indexOf(origin) !== -1) {
+      res.append('Access-Control-Allow-Origin', origin);
       res.append('Access-Control-Allow-Headers','x-requested-with, Content-Type, origin, authorization, accept, client-security-token');
       res.append('Access-Control-Allow-Credentials','true');
       res.append('Access-Control-Allow-Methods', 'POST, GET');
+      res.append('sec-fetch-site', 'cross-site');
       next();
   }else{
     res.send(`<h1>Please access this website from <a href="https://expresstoo-jzam6yvx3q-ez.a.run.app/" target="_blank">this link.</a></h1>`)
