@@ -95,6 +95,7 @@ const geturl = async (req,res,next)=>{
 
 
     res.send({domain,url,currentScreenshotUrl})
+    browser.b.close();
     page.b = null;
     browser.b = null;
     ret.r = null;
