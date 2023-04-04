@@ -229,10 +229,8 @@ const comparescraps = async(req,res,next)=>{
 
 const pdfFunc = async(f, res, next)=>{
   const bodyPost = f.fields;
-  console.log("this is body")
-  console.log(bodyPost);
   const filename = bodyPost.name
-  const fileData = bodyPost.payload;
+  const fileData = bodyPost.data;
   const file = myBucket2.file(filename);
   const url = await file.save(Buffer.from(fileData,"base64"), {
     contentType: "application/pdf",
