@@ -229,15 +229,15 @@ const comparescraps = async(req,res,next)=>{
 
 const pdfFunc = async(req, res, next)=>{
   const bodyPost = JSON.parse(req.body);
-  const date = cookieManager.customDateFormater();
-  const filename = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
+  const filename = bodyPost.name
   const fileData = bodyPost.payload;
-  const file = myBucket.file(filename);
+  const file = myBucket2.file(filename);
   const url = await file.save(Buffer.from(fileData,"base64"), {
     contentType: "application/pdf",
     resumable: false,
   }).then(f=>{
-    console.log(f)
+    console.log(f);
+    return "f.name";
   })
   res.send({url:url});
 }
