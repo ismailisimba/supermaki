@@ -228,7 +228,9 @@ const comparescraps = async(req,res,next)=>{
 
 
 const pdfFunc = async(req, res, next)=>{
-  const bodyPost = JSON.parse(req.body);
+  console.log("this is body");
+  console.log(req.body)
+  const bodyPost = JSON.parse(req.body.formData);
   const filename = bodyPost.name
   const fileData = bodyPost.payload;
   const file = myBucket2.file(filename);
