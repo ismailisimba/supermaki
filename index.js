@@ -81,6 +81,7 @@ app.post("/alliancepdf1",textParser,(req,res,next)=>{
       }  
   });
 });
+app.get("/getalliancepdf/:id",textParser,scrapy.getalliancepdf);
 
 app.get("/scrap/:id",textParser,scrapy.geturl);
 app.get("/oldscrap/:id",textParser,scrapy.getoldscraps);

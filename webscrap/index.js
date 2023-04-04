@@ -25,6 +25,7 @@ const filename = "./temp/temp6942.png"
 class webscrap {
     constructor(){
         this.checksource = checksource;
+        this.getalliancepdf = getalliancepdf;
         this.geturl = geturl;
         this.getoldscraps = getoldscraps;
         this.getscrap = getscrap
@@ -235,13 +236,40 @@ const pdfFunc = async(f, res, next)=>{
   const url = await file.save(Buffer.from(fileData,"base64"), {
     contentType: "application/pdf",
     resumable: false,
-  }).then(f=>{
-    console.log(f);
-    return "f.name";
+  }).then(()=>{
+    return `https://expresstoo-jzam6yvx3q-ez.a.run.app/getalliancepdf/${filename}`;
   })
   res.send({url:url});
 }
 
+
+
+
+const getalliancepdf =  async(req,res,next) =>{
+  const file = myBucket2.file(req.params.id);
+  const exists = await file.exists();
+
+    if(exists[0]){
+      const meta = await file.getMetadata().then(function(data) {
+        const metadata = data[0];
+        const apiResponse = data[1];
+        return metadata;
+      });
+      const fileData = await file.download().then(function(data) {
+          const contents = data[0];
+          return contents;
+        }).catch(e=>{
+          console.log(e);
+        });
+        res.set('Content-Disposition', `inline; filename="${req.params.id}"`);
+        res.contentType(`${meta.contentType}`);
+        res.send(fileData);
+
+    }else{
+      res.send({"no":"pdf"});
+    }
+
+}
 
 
 
