@@ -190,7 +190,6 @@ const ipCheck = (req,res,next)=>{
   }  
 }
 
-
 function checkRequestOrigin(req){
   const obj = {};
   if(typeof req.headers.origin!=="undefined"){
