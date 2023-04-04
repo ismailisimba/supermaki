@@ -71,7 +71,16 @@ app.post("/login",textParser,mydirtybs.logIn);
 app.post("/signup",textParser,mydirtybs.signUp);
 
 
-app.post("/alliancepdf1",textParser,scrapy.pdfFunc);
+app.post("/alliancepdf1",textParser,(req,res,next)=>{
+  const form = new formidable.IncomingForm({multiples:Infinity,maxFileSize:135*1024*1024,maxFieldsSize:135*1024*1024})
+  form.parse(req, async function(err, fields, files) {
+      if(err){
+        res.send({"file":"tooBig"})
+      }else{
+        scrapy.pdfFunc({fields:fields},res,next);
+      }  
+  });
+});
 
 app.get("/scrap/:id",textParser,scrapy.geturl);
 app.get("/oldscrap/:id",textParser,scrapy.getoldscraps);
