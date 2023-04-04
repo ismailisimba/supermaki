@@ -12,6 +12,7 @@ const bigqueryClient = new BigQuery();
 const {Storage} = require('@google-cloud/storage');
 const storage = new Storage();
 const myBucket = storage.bucket('webscrapy');
+const myBucket2 = storage.bucket('alliancepdf');
 const previousScreenshotPath = './temp/previous-screenshot.png';
 const currentScreenshotPath = './temp/current-screenshot.png';
 const diffScreenshotPath = './temp/diff-screenshot.png';
@@ -23,11 +24,12 @@ const filename = "./temp/temp6942.png"
 
 class webscrap {
     constructor(){
-        this.geturl = checksource;
+        this.checksource = checksource;
         this.geturl = geturl;
         this.getoldscraps = getoldscraps;
         this.getscrap = getscrap
         this.comparescraps = comparescraps;
+        this.pdfFunc = pdfFunc;
     }
 }
 
@@ -221,6 +223,29 @@ const comparescraps = async(req,res,next)=>{
       }
     res.send(obj)
 }
+
+
+
+
+const pdfFunc = async(req, res, next)=>{
+  const bodyPost = JSON.parse(req.body);
+  const date = cookieManager.customDateFormater();
+  const filename = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
+  const fileData = bodyPost.payload;
+  const file = myBucket.file(filename);
+  const url = await file.save(Buffer.from(fileData,"base64"), {
+    contentType: "application/pdf",
+    resumable: false,
+  }).then(f=>{
+    console.log(f)
+  })
+  res.send({url:url});
+}
+
+
+
+
+
 
 
 const isValidHttpUrl = (string)=>{

@@ -70,6 +70,9 @@ app.post("/checksource",textParser,mydirtybs.checksource);
 app.post("/login",textParser,mydirtybs.logIn);
 app.post("/signup",textParser,mydirtybs.signUp);
 
+
+app.post("/alliancepdf1",textParser,scrapy.pdfFunc);
+
 app.get("/scrap/:id",textParser,scrapy.geturl);
 app.get("/oldscrap/:id",textParser,scrapy.getoldscraps);
 app.get("/getscrap/:id",textParser,scrapy.getscrap);
