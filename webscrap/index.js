@@ -228,7 +228,7 @@ const comparescraps = async(req,res,next)=>{
 
 
 const pdfFunc = async(f, res, next)=>{
-  const bodyPost = JSON.parse(f.fields);
+  const bodyPost = f.fields;
   console.log("this is body")
   console.log(bodyPost);
   const filename = bodyPost.name
