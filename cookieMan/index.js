@@ -163,12 +163,18 @@ const getThisCookie = async (cookieVal)=>{
 
 
 const ipCheck = (req,res,next)=>{
-  const origin = typeof req.headers.origin==="undefined"||req.headers.origin==="undefined"?"*":req.headers.origin.toString();
+  const origin = checkRequestOrigin(req);
     const corsWhitelist = [
       'https://ismailisimba.github.io',
       'http://127.0.0.1:5050',
       'http://127.0.0.1:8080',
-      'https://expresstoo-jzam6yvx3q-ez.a.run.app'
+      'https://expresstoo-jzam6yvx3q-ez.a.run.app',
+      'https://script.google.com',
+      'ismailisimba.github.io',
+      '127.0.0.1:5050',
+      '127.0.0.1:8080',
+      'expresstoo-jzam6yvx3q-ez.a.run.app',
+      'script.google.com'
   ];
   if (corsWhitelist.indexOf(origin) !== -1) {
       res.append('Access-Control-Allow-Origin', origin);
@@ -179,8 +185,24 @@ const ipCheck = (req,res,next)=>{
       console.log("Fetch origin recognized and headers set")
       next();
   }else{
+    console.log("Fetch from "+origin+" is not recognized")
     res.send(`<h1>Please access this website from <a href="https://expresstoo-jzam6yvx3q-ez.a.run.app/" target="_blank">this link.</a></h1>`)
   }  
+}
+
+
+function checkRequestOrigin(req){
+  const obj = {};
+  if(typeof req.headers.origin!=="undefined"){
+    obj.val = req.headers.origin;
+  }else if(typeof req.headers.host!=="undefined"){
+    obj.val = req.headers.host;
+  }else{
+    obj.val = "undefined";
+    console.log("We could not read the source from header");
+    console.log(req.headers);
+  }
+  return obj.val;
 }
 
 
