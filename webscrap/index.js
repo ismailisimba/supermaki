@@ -147,6 +147,11 @@ const getscrap =  async(req,res,next) =>{
     const exists = await file.exists();
 
       if(exists[0]){
+        const meta = await file.getMetadata().then(function(data) {
+          const metadata = data[0];
+          const apiResponse = data[1];
+          return metadata;
+        });
         const fileData = await file.download().then(function(data) {
             const contents = data[0];
             return contents;
@@ -154,6 +159,7 @@ const getscrap =  async(req,res,next) =>{
             console.log(e);
           });
           res.set('Content-Disposition', `inline; filename="${req.params.id}"`);
+          res.contentType(`${meta.contentType}`);
           res.send(fileData);
 
       }else{
