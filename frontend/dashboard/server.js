@@ -110,16 +110,18 @@ const processProfileForm = async (e)=>{
 }
 
 const readAllInputs = async(form)=>{
-  const arr = [];
+  const arr = {};
   form.querySelectorAll("input").forEach(async(input)=>{
     const name = input.id;
     if(name==="inputPic"){
       upFiles.forEach(obj=>{
-        if(obj.fileSrc===name){arr.push({name,obj})}
+        if(obj.fileSrc===name){
+          arr[name]=obj
+        }
       })
     }else if(name==="cheekyone"){}else{
       const x = input.value;
-      arr.push({name,x})
+      arr[name]=x;
     }
   })
   return arr;

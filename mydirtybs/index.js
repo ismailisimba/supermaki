@@ -265,24 +265,17 @@ const getNotifications = async(req,res,next)=>{
 const updateProfile = async(f,res,next)=>{
     const obj = JSON.parse(f.fields.inputs);
     const uName = res.locals.plainCookie.user;
-    const fName = obj[2].obj;
-    const lName = obj[3].obj;
-    const email = obj[4].obj;
+    const fName = obj.firstName;
+    const lName = obj.lastName;
+    const email = obj.email;
+    const iPic = obj.inputPic;
     const numOfItems = obj.length;
-    for(let i = 0; i<numOfItems;i++ ){
-      if(obj[i].obj)
-      {
-        if(obj[i].name==="firstName"){
-          updateFirstName(obj[i].obj,uName);
-        }else if(obj[i].name==="lastName"){
-          updateLastName(obj[i].obj,uName)
-        }else if(obj[i].name==="inputPic"){
-            updateProfilePic(obj[i],res);
-        }else{
-          
-        }
-      }
-    }    
+
+    updateFirstName(fName,uName);
+    updateLastName(lName,uName);
+    if(iPic&& typeof iPic !== "undefined"){updateProfilePic(iPic,res)}else{};
+     
+   
     res.send({"is":"updated"})
 }
 
@@ -445,7 +438,7 @@ const updateUserFileList = async (user,file)=>{
 }
 
 const uploadFile =async (obj,res,folder)=>{
-    const imgObj = obj.obj
+    const imgObj = obj;
     const metadata = {
         contentType: 'application/x-font-ttf',
         metadata: {
