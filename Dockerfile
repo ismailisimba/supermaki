@@ -11,10 +11,6 @@ WORKDIR /usr/src/app
 # Copying this first prevents re-running npm install on every code change.
 COPY package*.json ./
 
-# Install production dependencies.
-# If you add a package-lock.json, speed your build by switching to 'npm ci'.
-# RUN npm ci --only=production
-FROM node:18
 
 # Adds required libs
 RUN apt-get update && \
@@ -39,6 +35,10 @@ RUN apt-get update \
 
 
 ENV NODE_ENV=production
+ENV npm_config_arch=x64
+ENV npm_config_platform=linux
+
+RUN npm install --omit=dev
 
 # Copy local code to the container image.
 COPY ./ ./
