@@ -4,6 +4,7 @@ const puppeteer = require("puppeteer");
 const pixelmatch = require("pixelmatch");
 const fs = require("fs");
 const PNG = require('pngjs').PNG;
+const sharp = require('sharp');
 
 const {BigQuery} = require('@google-cloud/bigquery');
 const cookieMan = require("../cookieMan");
@@ -84,6 +85,11 @@ const geturl = async (req,res,next)=>{
     browser.b = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true});
     const page = {};
     page.b = await browser.b.newPage();
+    await page.b.setViewport({
+      width: 1920,
+      height: 1080,
+      deviceScaleFactor: 1,
+    });
     const date = cookieManager.customDateFormater();
     const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
     const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
@@ -101,10 +107,7 @@ const geturl = async (req,res,next)=>{
 
 
     res.send({domain,url,currentScreenshotUrl})
-    browser.b.close();
-    page.b = null;
-    browser.b = null;
-    ret.r = null;
+    await browser.b.close();
     }catch(e){
       res.send(e);
     }
@@ -179,21 +182,22 @@ const comparescraps = async(req,res,next)=>{
     obj["1"] = {urlToScreen,oldScreen};
 
     // Download the file from the bucket
-    await file.download({ destination: filename });
+    await file.download({ destination: previousScreenshotPath });
     
-    const browser = await puppeteer.launch({args: ['--no-sandbox']});
+    const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true});
     const page = await browser.newPage();
+    await page.setViewport({
+      width: 1920,
+      height: 1080,
+      deviceScaleFactor: 1,
+    });
     const date = cookieManager.customDateFormater();
     const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
     const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
     
   
-    // Download the file to a local file
-    const localFilename = filename;
-    await file.download({ destination: localFilename });
-  
     // Launch Puppeteer and navigate to the URL
-    await page.goto(urlToScreen);
+    await page.goto(urlToScreen,{waitUntil:"networkidle2"});
   
     // Take a screenshot of the full page
     await page.screenshot({path: currentScreenshotPath, fullPage:true});
@@ -202,28 +206,48 @@ const comparescraps = async(req,res,next)=>{
     await browser.close();
   
     // Read the file and screenshot into PNG buffers
-    const fileBuffer = fs.readFileSync(localFilename);
-    const screenshotBuffer = fs.readFileSync(currentScreenshotPath)
+    const fileBuffer = fs.readFileSync(previousScreenshotPath);
+    const screenshotBuffer = fs.readFileSync(currentScreenshotPath);
     const fileImage = PNG.sync.read(fileBuffer);
     const screenshotImage = PNG.sync.read(screenshotBuffer);
-  
-    // Crop the screenshot to the same size as the file
-    const { width, height } = fileImage;
-    const croppedScreenshot = new PNG({ width, height });
-    PNG.bitblt(screenshotImage, croppedScreenshot, 0, 0, width, height, 0, 0);
+    const widthY = fileImage.width;
+    const heightY = fileImage.height;
+    const widthX = screenshotImage.width;
+    const heightX = screenshotImage.height;
+    const XY = {};
+    XY.height = heightX>heightY?heightY:heightX;
+    XY.width = widthX>widthY?widthY:widthX;
+
+     // Crop the screenshot and file to same size using lowest common dimensions
+    const newFile = await sharp(fileBuffer)
+    .extract({left: 0, width: XY.width, height: XY.height, top: 0})
+    .toBuffer();
+    const newScreen = await sharp(screenshotBuffer)
+    .extract({left: 0, width: XY.width, height: XY.height, top: 0})
+    .toBuffer();
+    
+    XY.fileData = PNG.sync.read(newFile);
+    XY.screenData = PNG.sync.read(newScreen);
   
     // Compare the two images and log any differences
-    const diffPixels = pixelmatch(fileImage.data, croppedScreenshot.data, null, width, height);
-    if (diffPixels > 0) {
+    const diffPixels = pixelmatch(XY.fileData.data, XY.screenData.data, null, XY.width, XY.height);
+    if (diffPixels/(XY.height*XY.width) > 0.15) {
       await Promise.all([
         myBucket.upload(currentScreenshotPath, { destination: currentScreenshotName }),
       ]);
       const currentScreenshotUrl = `https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${currentScreenshotName}`;
       obj["newScreen"] = currentScreenshotUrl;
       obj["numOfDifPix"] = diffPixels;
+      obj["percDiff"] = diffPixels/(XY.height*XY.width);
     } else {
+      await Promise.all([
+        myBucket.upload(currentScreenshotPath, { destination: currentScreenshotName }),
+      ]);
+      const currentScreenshotUrl = `https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${currentScreenshotName}`;
+      obj["newScreen"] = currentScreenshotUrl;
       console.log('No differences found');
-      obj["numOfDifPix"] = null;
+      obj["numOfDifPix"] = diffPixels;
+      obj["percDiff"] = diffPixels/(XY.height*XY.width);
     }
       }else{
     obj.res = {"notValidUrl":urlToScreen};
