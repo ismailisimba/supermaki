@@ -90,6 +90,7 @@ const geturl = async (req,res,next)=>{
       height: 1080,
       deviceScaleFactor: 1,
     });
+    
     const date = cookieManager.customDateFormater();
     const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
     const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
