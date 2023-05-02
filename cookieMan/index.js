@@ -194,6 +194,7 @@ const ipCheck = (req,res,next)=>{
     next();
 
   }else{
+    console.log("Fetch from "+origin+" is not recognized")
     res.send(`<h1>Please access this website from <a href="https://expresstoo-jzam6yvx3q-ez.a.run.app/" target="_blank">this link.</a></h1>`)
   }  
 }
