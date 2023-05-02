@@ -170,11 +170,13 @@ const ipCheck = (req,res,next)=>{
       'http://127.0.0.1:8080',
       'https://expresstoo-jzam6yvx3q-ez.a.run.app',
       'https://script.google.com',
+      'https://storage.googleapis.com',
       'ismailisimba.github.io',
       '127.0.0.1:5050',
       '127.0.0.1:8080',
       'expresstoo-jzam6yvx3q-ez.a.run.app',
-      'script.google.com'
+      'script.google.com',
+      'storage.googleapis.com',
   ];
   if (corsWhitelist.indexOf(origin) !== -1) {
       res.append('Access-Control-Allow-Origin', origin);
