@@ -170,8 +170,6 @@ const ipCheck = (req,res,next)=>{
       'http://127.0.0.1:8080',
       'https://expresstoo-jzam6yvx3q-ez.a.run.app',
       'https://script.google.com',
-      'https://499066982-atari-embeds.googleusercontent.com',
-      'https://googleusercontent.com',
       'ismailisimba.github.io',
       '127.0.0.1:5050',
       '127.0.0.1:8080',
@@ -186,8 +184,16 @@ const ipCheck = (req,res,next)=>{
       res.append('sec-fetch-site', 'cross-site');
       console.log("Fetch origin recognized and headers set")
       next();
+  }else if(origin.includes("googleusercontent.com")){
+    res.append('Access-Control-Allow-Origin', "*");
+    res.append('Access-Control-Allow-Headers','x-requested-with, Content-Type, origin, authorization, accept, client-security-token');
+    res.append('Access-Control-Allow-Credentials','true');
+    res.append('Access-Control-Allow-Methods', 'POST, GET');
+    res.append('sec-fetch-site', 'cross-site');
+    console.log("Fetch from "+origin+" is provisionally recognized")
+    next();
+
   }else{
-    console.log("Fetch from "+origin+" is not recognized")
     res.send(`<h1>Please access this website from <a href="https://expresstoo-jzam6yvx3q-ez.a.run.app/" target="_blank">this link.</a></h1>`)
   }  
 }
