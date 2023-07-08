@@ -27,6 +27,7 @@ class mydirtybase {
         this.updateProfile = updateProfile;
         this.getFilePubl = getFilePubl;
         this.getFileMeta = getFileMeta;
+        this.deleteThisFile = deleteThisFile;
     }
 }
 
@@ -394,6 +395,20 @@ const getFileMeta =  async(req,res,next) =>{
     res.send(meta);
 }
 
+
+const deleteThisFile =  async(req,res,next) =>{
+  const file = myBucket.file(req.params.id);
+  const meta = await file.getMetadata().then(function(data) {
+      const metadata = data[0];
+      return metadata;
+    });
+
+    if(meta.metadata.owner===res.locals.plainCookie.user){
+      res.send("Deleted...");
+    }else{
+      res.send("No permission...");
+    }
+}
 
 const updateUserFileList = async (user,file)=>{
     //console.log({user,file});

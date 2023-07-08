@@ -46,6 +46,7 @@ app.get("/dashboard",[cookieParser(),mydirtybs.checkIfLogIn],(req,res,next)=>{
 app.get("/getnotifications",[cookieParser(),mydirtybs.checkIfLogIn],mydirtybs.getNotifications);
 app.get("/getfile/:id",[cookieParser()],mydirtybs.getFilePubl);
 app.get("/getmetadata/:id",[cookieParser()],mydirtybs.getFileMeta);
+app.get("/deletethisfile/:id",[cookieParser(),mydirtybs.checkIfLogIn],mydirtybs.deleteThisFile);
 
 
 app.post("/updateprofile",[cookieParser(),mydirtybs.checkIfLogIn,(req,res,next)=>{

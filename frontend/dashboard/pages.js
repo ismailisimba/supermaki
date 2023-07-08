@@ -177,7 +177,7 @@ const setFilesPage =async(e)=>{
     cardtext.innerHTML = elements.obj.files.innerHTML;
     document.getElementById("cmain").innerHTML = "";
     document.getElementById("cmain").appendChild(pg1crd);
-    utility.paintFilesOne(pg1crd,filecrd,files);
+    utility.paintFilesOne(pg1crd,filecrd,files)
     pg1crd.style.width = "100%";
     updatesOnNavigation("Files");
     

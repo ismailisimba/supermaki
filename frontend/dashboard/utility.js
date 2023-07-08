@@ -7,6 +7,7 @@ class utility {
     constructor(){
         this.basicFormChecks = basicFormChecks;  
         this.paintFilesOne = paintFilesOne;
+        this.addCheckboxSelectClicks = addCheckboxSelectClicks;
     }
 
 }
@@ -32,12 +33,12 @@ const basicFormChecks = (form)=>{
 }
 
 
-const paintFilesOne = (ele1,ele2,files)=>{
+const paintFilesOne = async(ele1,ele2,files)=>{
     const x = document.createElement("p");
     const container = ele2.querySelectorAll("ul")[0].cloneNode(true);
     const card = ele2.querySelectorAll("li")[3].cloneNode(true);
     x.innerHTML = "jdbvjbdv";
-    ele1.querySelectorAll("#select")[0].addEventListener("click",setupForFileDeletion)
+    ele1.querySelectorAll("#select")[0].addEventListener("click",setupForFileDeletion);
     ele1.querySelectorAll("ul")[0]&&ele1.querySelectorAll("ul")[0].nodeType?ele1.querySelectorAll("ul")[0].remove():"";
     container.innerHTML = "";
     container.classList.add("filecontainerone");
@@ -46,13 +47,13 @@ const paintFilesOne = (ele1,ele2,files)=>{
    files.forEach(async (file)=>{
     const serv = await importAmod("server");
     const server = new serv.server();
+    const nwCard = card.cloneNode(true);
     server.startFetch(
         JSON.stringify({}),
         `/getmetadata/${file.split("getfile/")[1]}`,
         "GET",
         (r)=>{
           const fdeets = JSON.parse(r);
-          const nwCard = card.cloneNode(true);
           nwCard.querySelectorAll(".mailbox-attachment-name")[0].innerHTML = fdeets.metadata.ogname
           nwCard.querySelectorAll(".mailbox-attachment-name")[0].href = file;
           nwCard.querySelectorAll(".filesize")[0].innerHTML = Number.parseFloat(fdeets.size/(1024*1024)).toFixed(2) +" MB";
@@ -62,9 +63,39 @@ const paintFilesOne = (ele1,ele2,files)=>{
           container.appendChild(nwCard);
           counter++;
         }
-    )
+    ).then(()=>{
+        nwCard.querySelectorAll(".customoverlay")[0]
+        .querySelectorAll("img")[0]
+        .addEventListener("click",addCheckboxSelectClicks)
+
+        document.getElementById("delete")
+        .addEventListener("click",deleteSelectedFiles)
+    })
     
    })
+}
+
+const deleteSelectedFiles = (e)=>{
+    e.stopPropagation();
+    e.preventDefault();
+    const filesArr = document.getElementById("cmain").querySelectorAll("img.active");
+    if(typeof filesArr !== "undefined"){
+        alert("Deleting selected files...")
+        filesArr.forEach(async(file)=>{
+            const fileUrl = file.parentNode.parentNode.querySelectorAll("a")[0];
+            console.log(fileUrl.href);
+            const serv = await importAmod("server");
+            const server = new serv.server();           
+            server.startFetch(
+                JSON.stringify({}),
+                `/deletethisfile/${fileUrl.href.split("getfile/")[1]}`,
+                "GET",
+                (r)=>{console.log(r)}
+                )
+         })
+    }else{
+        alert("No files selected!");
+    }
 }
 
 
@@ -77,6 +108,23 @@ const setupForFileDeletion = (e) => {
     }) 
     
 }
+
+
+const addCheckboxSelectClicks = async(e) =>{
+    e.stopPropagation();
+    e.preventDefault();
+    const item = e.target;
+    if(item.classList.contains("active")){
+        item.classList.remove("active");
+        item.src = "../icons/checkbox.png"
+    }else{
+        item.classList.add("active");
+        item.src = "../icons/checkbox-select.png"
+    }
+}
+
+//complete file deletion by multi select.
+//Delete or edit details via buttons on top of the file page
 
 
 const importAmod = (name)=>{

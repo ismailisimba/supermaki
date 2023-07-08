@@ -107,6 +107,16 @@ ul.nav-treeview{
     align-items: center;
 }
 
+.customoverlay img{
+    opacity: .69;
+    background-color: white;
+}
+
+.customoverlay img.active{
+    background-color: #666;
+}
+
+
 .checkimg{
     background-color: #fff;
     border-radius: 9px;
