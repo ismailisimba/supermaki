@@ -404,11 +404,105 @@ const deleteThisFile =  async(req,res,next) =>{
     });
 
     if(meta.metadata.owner===res.locals.plainCookie.user){
+      await deleteThisUserFile(meta.metadata.owner,req.params.id)
       res.send("Deleted...");
     }else{
       res.send("No permission...");
     }
 }
+
+
+const deleteThisUserFile = async (user,file)=>{
+  //console.log({user,file});
+  //get the current user file list
+  const options1 = {
+      // Specify a job configuration to set optional job resource properties.
+      configuration: {
+        query: {
+          query: `SELECT files FROM ismizo.makione.users WHERE Username='${user}'`,
+          useLegacySql: false,
+        },
+        labels: {'example-label': 'example-value'},
+      },
+    };
+    const response = await bigqueryClient.createJob(options1);
+     const job = response[0];
+   
+     // Wait for the query to finish
+     const [rows] = await job.getQueryResults(job);
+     let newList = "";
+     if(rows[0].files===null||rows[0].files==="null"){
+      newList = file.publUrL;
+     }else{
+      const oldfiles = rows[0].files.split(", ");
+      const filetodelete = file;
+
+      for(item of oldfiles){
+          if(item.includes(filetodelete)){
+            const index = oldfiles.indexOf(item);
+            oldfiles.splice(index, 1);
+            const file = myBucket.file(filetodelete);
+            const ans2 = await file.delete().then(data=>{
+              return data
+            })
+            const ans1 = await updateDeletedList(oldfiles,user);
+
+            console.log(ans1,ans2)
+          }else{
+
+          }
+      }
+      
+      //newList = rows[0].files +", "+file.publUrL;
+     }
+    /* const options2 = {
+      // Specify a job configuration to set optional job resource properties.
+      configuration: {
+        query: {
+          query: `UPDATE ismizo.makione.users
+       SET files = '${newList}'
+       WHERE Username = '${user}' 
+     `,
+          useLegacySql: false,
+        },
+        labels: {'example-label': 'example-value'},
+      },
+    };
+    const response2 = await bigqueryClient.createJob(options2);
+     const job2 = response2[0];
+*/
+}
+
+
+
+const updateDeletedList = async (array,user)=>{
+  
+    const newList = {"0":""};
+    for(item of array){
+        newList["0"] = newList["0"]+item+", ";
+    }
+     const options2 = {
+      // Specify a job configuration to set optional job resource properties.
+      configuration: {
+        query: {
+          query: `UPDATE ismizo.makione.users
+       SET files = '${newList["0"]}'
+       WHERE Username = '${user}' 
+     `,
+          useLegacySql: false,
+        },
+        labels: {'example-label': 'example-value'},
+      },
+    };
+    const response2 = await bigqueryClient.createJob(options2);
+     const job2 = response2[0];
+     const [rows] = await job2.getQueryResults(job2);
+     return rows;
+}
+
+
+
+
 
 const updateUserFileList = async (user,file)=>{
     //console.log({user,file});

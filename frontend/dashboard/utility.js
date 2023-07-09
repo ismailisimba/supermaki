@@ -8,6 +8,8 @@ class utility {
         this.basicFormChecks = basicFormChecks;  
         this.paintFilesOne = paintFilesOne;
         this.addCheckboxSelectClicks = addCheckboxSelectClicks;
+        this.startBasicAnimation = startBasicAnimation;
+        this.stopBasicAnimation = stopBasicAnimation;
     }
 
 }
@@ -48,29 +50,36 @@ const paintFilesOne = async(ele1,ele2,files)=>{
     const serv = await importAmod("server");
     const server = new serv.server();
     const nwCard = card.cloneNode(true);
-    server.startFetch(
-        JSON.stringify({}),
-        `/getmetadata/${file.split("getfile/")[1]}`,
-        "GET",
-        (r)=>{
-          const fdeets = JSON.parse(r);
-          nwCard.querySelectorAll(".mailbox-attachment-name")[0].innerHTML = fdeets.metadata.ogname
-          nwCard.querySelectorAll(".mailbox-attachment-name")[0].href = file;
-          nwCard.querySelectorAll(".filesize")[0].innerHTML = Number.parseFloat(fdeets.size/(1024*1024)).toFixed(2) +" MB";
-          nwCard.querySelectorAll(".imgindex")[0].innerHTML = counter;
-          const deSrc = window.location.hostname.includes("127.0.0.1")?file.replace("https://expresstoo-jzam6yvx3q-ez.a.run.app","http://127.0.0.1:8080"):file;
-          nwCard.querySelectorAll(".filethumb")[0].src = deSrc;
-          container.appendChild(nwCard);
-          counter++;
-        }
-    ).then(()=>{
-        nwCard.querySelectorAll(".customoverlay")[0]
-        .querySelectorAll("img")[0]
-        .addEventListener("click",addCheckboxSelectClicks)
+    startBasicAnimation();
 
-        document.getElementById("delete")
-        .addEventListener("click",deleteSelectedFiles)
-    })
+        if(typeof file.split("getfile/")[1] !== "undefined"){
+            server.startFetch(
+                JSON.stringify({}),
+                `/getmetadata/${file.split("getfile/")[1]}`,
+                "GET",
+                (r)=>{
+                  const fdeets = JSON.parse(r);
+                  nwCard.querySelectorAll(".mailbox-attachment-name")[0].innerHTML = fdeets.metadata.ogname
+                  nwCard.querySelectorAll(".mailbox-attachment-name")[0].href = file;
+                  nwCard.querySelectorAll(".filesize")[0].innerHTML = Number.parseFloat(fdeets.size/(1024*1024)).toFixed(2) +" MB";
+                  nwCard.querySelectorAll(".imgindex")[0].innerHTML = counter;
+                  const deSrc = window.location.hostname.includes("127.0.0.1")?file.replace("https://expresstoo-jzam6yvx3q-ez.a.run.app","http://127.0.0.1:8080"):file;
+                  nwCard.querySelectorAll(".filethumb")[0].src = deSrc;
+                  container.appendChild(nwCard);
+                  counter++;
+                }
+            ).then(()=>{
+                nwCard.querySelectorAll(".customoverlay")[0]
+                .querySelectorAll("img")[0]
+                .addEventListener("click",addCheckboxSelectClicks)
+        
+                document.getElementById("delete")
+                .addEventListener("click",deleteSelectedFiles)
+                stopBasicAnimation();
+            })
+        }else{
+            
+        }
     
    })
 }
@@ -79,8 +88,9 @@ const deleteSelectedFiles = (e)=>{
     e.stopPropagation();
     e.preventDefault();
     const filesArr = document.getElementById("cmain").querySelectorAll("img.active");
-    if(typeof filesArr !== "undefined"){
+    if(typeof filesArr !== "undefined" && filesArr.length>=1){
         alert("Deleting selected files...")
+        startBasicAnimation();
         filesArr.forEach(async(file)=>{
             const fileUrl = file.parentNode.parentNode.querySelectorAll("a")[0];
             console.log(fileUrl.href);
@@ -90,7 +100,10 @@ const deleteSelectedFiles = (e)=>{
                 JSON.stringify({}),
                 `/deletethisfile/${fileUrl.href.split("getfile/")[1]}`,
                 "GET",
-                (r)=>{console.log(r)}
+                (r)=>{
+                    stopBasicAnimation();
+                    console.log(r)
+                }
                 )
          })
     }else{
@@ -127,7 +140,25 @@ const addCheckboxSelectClicks = async(e) =>{
 //Delete or edit details via buttons on top of the file page
 
 
-const importAmod = (name)=>{
+
+
+
+
+const startBasicAnimation = async()=>{
+    const ani = await importAmod("animation");
+    const anime = new ani.anime();
+    anime.startAnime();
+  }
+
+
+  const stopBasicAnimation = async()=>{
+    const ani = await importAmod("animation");
+    const anime = new ani.anime();
+    anime.stopAnime();
+  }
+
+
+  const importAmod = (name)=>{
     return (async()=>{
         const modEd = await import("./"+`${name}`+".js");
         return modEd;
