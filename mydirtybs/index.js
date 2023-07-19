@@ -345,11 +345,18 @@ const doDataJob = async(options,next=()=>{})=>{
 
 const getFilePubl =  async(req,res,next) =>{
     const file = myBucket.file(req.params.id);
+    const fileid = req.params.id;
+    const exists = await file.exists().then(function(data) {
+      const exist = data[0];
+      return exist
+    });
+    if(exists){
     const meta = await file.getMetadata().then(function(data) {
         const metadata = data[0];
         const apiResponse = data[1];
         return metadata;
       });
+
       if(meta.metadata.genaccess==="public"){
         const fileData = await file.download().then(function(data) {
             const contents = data[0];
@@ -381,11 +388,20 @@ const getFilePubl =  async(req,res,next) =>{
       }else{
         res.send(`<h2 style="display:block;position:relative;margin:0 auto;color:red;font-size:42px">Please log in to view this file.</h2>`);
       }
-
+    }else{
+      res.send({fileid:fileid+"doesn't exist!"});
+    }
 }
 
 const getFileMeta =  async(req,res,next) =>{
   const file = myBucket.file(req.params.id);
+  const fileid = req.params.id;
+  const exists = await file.exists().then(function(data) {
+    const exist = data[0];
+    return exist
+  });
+
+  if(exists){
   const meta = await file.getMetadata().then(function(data) {
       const metadata = data[0];
       const apiResponse = data[1];
@@ -393,6 +409,9 @@ const getFileMeta =  async(req,res,next) =>{
     });
     meta.metadata.inaccess = "***";
     res.send(meta);
+  }else{
+    res.send({"file":fileid+"doesn't exist!"});
+  }
 }
 
 
@@ -442,10 +461,11 @@ const deleteThisUserFile = async (user,file)=>{
             const index = oldfiles.indexOf(item);
             oldfiles.splice(index, 1);
             const file = myBucket.file(filetodelete);
+            const ans1 = await updateDeletedList(oldfiles,user);
             const ans2 = await file.delete().then(data=>{
               return data
             })
-            const ans1 = await updateDeletedList(oldfiles,user);
+            
 
             console.log(ans1,ans2)
           }else{
@@ -478,8 +498,13 @@ const deleteThisUserFile = async (user,file)=>{
 const updateDeletedList = async (array,user)=>{
   
     const newList = {"0":""};
+    const lastIndex = array.length -1;
     for(item of array){
+       if(array.indexOf(item)===lastIndex){
+        newList["0"] = newList["0"]+item+"";
+       }else{
         newList["0"] = newList["0"]+item+", ";
+       }
     }
      const options2 = {
       // Specify a job configuration to set optional job resource properties.

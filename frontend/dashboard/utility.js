@@ -58,15 +58,21 @@ const paintFilesOne = async(ele1,ele2,files)=>{
                 `/getmetadata/${file.split("getfile/")[1]}`,
                 "GET",
                 (r)=>{
-                  const fdeets = JSON.parse(r);
-                  nwCard.querySelectorAll(".mailbox-attachment-name")[0].innerHTML = fdeets.metadata.ogname
-                  nwCard.querySelectorAll(".mailbox-attachment-name")[0].href = file;
-                  nwCard.querySelectorAll(".filesize")[0].innerHTML = Number.parseFloat(fdeets.size/(1024*1024)).toFixed(2) +" MB";
-                  nwCard.querySelectorAll(".imgindex")[0].innerHTML = counter;
-                  const deSrc = window.location.hostname.includes("127.0.0.1")?file.replace("https://expresstoo-jzam6yvx3q-ez.a.run.app","http://127.0.0.1:8080"):file;
-                  nwCard.querySelectorAll(".filethumb")[0].src = deSrc;
-                  container.appendChild(nwCard);
-                  counter++;
+                    try{
+                        const fdeets = JSON.parse(r);
+                        nwCard.querySelectorAll(".mailbox-attachment-name")[0].innerHTML = fdeets.metadata.ogname
+                        nwCard.querySelectorAll(".mailbox-attachment-name")[0].href = file;
+                        nwCard.querySelectorAll(".filesize")[0].innerHTML = Number.parseFloat(fdeets.size/(1024*1024)).toFixed(2) +" MB";
+                        nwCard.querySelectorAll(".imgindex")[0].innerHTML = counter;
+                        const deSrc = window.location.hostname.includes("127.0.0.1")?file.replace("https://expresstoo-jzam6yvx3q-ez.a.run.app","http://127.0.0.1:8080"):file;
+                        nwCard.querySelectorAll(".filethumb")[0].src = deSrc;
+                        container.appendChild(nwCard);
+                        counter++;
+                    }catch(e){
+                        console.log(e);
+                        console.log(r);
+
+                    }
                 }
             ).then(()=>{
                 nwCard.querySelectorAll(".customoverlay")[0]
@@ -102,7 +108,8 @@ const deleteSelectedFiles = (e)=>{
                 "GET",
                 (r)=>{
                     stopBasicAnimation();
-                    console.log(r)
+                    console.log(r);
+                    window.location.reload();
                 }
                 )
          })
