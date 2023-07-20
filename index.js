@@ -91,6 +91,31 @@ app.get("/comparescrap/:url/:picUrl",textParser,scrapy.comparescraps)
 
 
 
+
+app.get("/getendpointlist",[cookieParser(),mydirtybs.checkIfLogIn],(req,res,next)=>{
+  const routes = [];
+  app._router.stack.forEach((middleware) => {
+    if (middleware.route) {
+      // Routes registered directly on the application
+      routes.push({
+        method: Object.keys(middleware.route.methods)[0].toUpperCase(),
+        path: middleware.route.path,
+      });
+    } else if (middleware.name === 'router') {
+      // Routes registered on routers (like router.get, router.post, etc.)
+      middleware.handle.stack.forEach((handler) => {
+        routes.push({
+          method: Object.keys(handler.route.methods)[0].toUpperCase(),
+          path: middleware.regexp.toString(),
+        });
+      });
+    }
+  });
+  res.send(routes);
+});
+
+
+
 const wsServer = new ws.Server({ noServer: true });
 wsServer.on('connection', socket => {
   socket.on('message', function message(data) {
