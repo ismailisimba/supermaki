@@ -162,7 +162,7 @@ const getscrap =  async(req,res,next) =>{
           }).catch(e=>{
             console.log(e);
           });
-          res.set('Content-Disposition', `inline; filename="${req.params.id}"`);
+          res.set('Content-Disposition', `inline; filename="${req.params.id+meta.contentType.split("/")[1]}"`);
           res.contentType(`${meta.contentType}`);
           res.send(fileData);
 
