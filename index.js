@@ -70,7 +70,16 @@ app.post("/updateprofile",[cookieParser(),mydirtybs.checkIfLogIn,(req,res,next)=
 app.post("/checksource",textParser,mydirtybs.checksource);
 app.post("/login",textParser,mydirtybs.logIn);
 app.post("/signup",textParser,mydirtybs.signUp);
+app.post("/autosearchsql",[textParser,],async(req,res,next)=>{
+  try{
+    const bodyobj = JSON.parse(req.body);
+    const queryResults = await dataManager.generateSQLQuery(bodyobj);
+    res.send(queryResults);
+}catch(e){
+    res.send(e);
+}
 
+})
 
 app.post("/alliancepdf1",textParser,(req,res,next)=>{
   const form = new formidable.IncomingForm({multiples:Infinity,maxFileSize:135*1024*1024,maxFieldsSize:135*1024*1024})

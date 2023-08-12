@@ -28,6 +28,7 @@ class mydirtybase {
         this.getFilePubl = getFilePubl;
         this.getFileMeta = getFileMeta;
         this.deleteThisFile = deleteThisFile;
+        this.generateSQLQuery = generateSQLQuery;
     }
 }
 
@@ -173,6 +174,36 @@ async function findUser(username,email){
        const [rows2] = await job2.getQueryResults(job2)
      return {rows,rows2};
     }
+
+
+
+    function generateSQLQuery(searchObject) {
+      let whereClauses = [];
+    
+      for (const criteria of searchObject.advanceSearchValues) {
+          // Simple name-value check
+          if (criteria.checked && criteria.value) {
+              whereClauses.push(`${criteria.name} = "${criteria.value}"`);
+          }
+          
+          // Date range check
+          if (criteria.start && criteria.end) {
+              whereClauses.push(`${criteria.name} BETWEEN "${criteria.start}" AND "${criteria.end}"`);
+          }
+      }
+    
+      // Basic Search
+      if (searchObject.basicSearch) {
+          whereClauses.push(`name LIKE "%${searchObject.basicSearch}%"`);
+      }
+    
+      const whereStatement = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    
+      const query = `SELECT * FROM your_dataset.your_table ${whereStatement};`;
+      return query;
+    }
+
+
 
 const checkIfLogIn = async (req,res,next)=>{
     const msg = crypto.decrypt(req.cookies.makiCookie, await cookieManager.getMasterKey());
