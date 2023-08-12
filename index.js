@@ -73,7 +73,7 @@ app.post("/signup",textParser,mydirtybs.signUp);
 app.post("/autosearchsql",[textParser,],async(req,res,next)=>{
   try{
     const bodyobj = JSON.parse(req.body);
-    const queryResults = await dataManager.generateSQLQuery(bodyobj);
+    const queryResults = mydirtybs.generateSQLQuery(bodyobj);
     res.send(queryResults);
 }catch(e){
     res.send(e);
