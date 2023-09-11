@@ -96,6 +96,17 @@ const geturl = async (req,res,next)=>{
     const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
 
     await page.b.goto(url,{waitUntil:"networkidle2"});
+    await page.evaluate(_ => {
+      function xcc_contains(selector, text) {
+          var elements = document.querySelectorAll(selector);
+          return Array.prototype.filter.call(elements, function(element){
+              return RegExp(text, "i").test(element.textContent.trim());
+          });
+      }
+      var _xcc;
+      _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|Accept)$');
+      if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
+  });
     await page.b.screenshot({path: currentScreenshotPath, fullPage:true});
 
 
@@ -199,6 +210,17 @@ const comparescraps = async(req,res,next)=>{
   
     // Launch Puppeteer and navigate to the URL
     await page.goto(urlToScreen,{waitUntil:"networkidle2"});
+    await page.evaluate(_ => {
+      function xcc_contains(selector, text) {
+          var elements = document.querySelectorAll(selector);
+          return Array.prototype.filter.call(elements, function(element){
+              return RegExp(text, "i").test(element.textContent.trim());
+          });
+      }
+      var _xcc;
+      _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|Accept)$');
+      if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
+  });
   
     // Take a screenshot of the full page
     await page.screenshot({path: currentScreenshotPath, fullPage:true});
