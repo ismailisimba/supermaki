@@ -96,7 +96,7 @@ const geturl = async (req,res,next)=>{
     const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
 
     await page.b.goto(url,{waitUntil:"networkidle2"});
-    await page.evaluate(_ => {
+    await page.b.evaluate(_ => {
       function xcc_contains(selector, text) {
           var elements = document.querySelectorAll(selector);
           return Array.prototype.filter.call(elements, function(element){
@@ -121,6 +121,7 @@ const geturl = async (req,res,next)=>{
     res.send({domain,url,currentScreenshotUrl})
     await browser.b.close();
     }catch(e){
+      console.log(e);
       res.send(e);
     }
 
