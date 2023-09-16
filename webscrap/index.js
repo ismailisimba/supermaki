@@ -600,7 +600,17 @@ const generateEmailHtml = (data, domain) => {
 
   // Check if comparisonResult exists and has content
   if (!comparisonResult || comparisonResult.length === 0 || !comparisonResult[0].string1Diff) {
-    return 'No differences to display.';
+    return `
+    <div style="max-width: 600px; margin: auto;">
+      <h1 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h1>
+      <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
+      <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap//${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
+      <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap//${oldScreen}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
+
+      <h2 style="font-family: Arial, sans-serif; font-color:green;">No New Text Detected</h2>
+      <pre style="font-family: 'Arial', Courier, monospace;">${string1Diff}</pre>
+    </div>
+`;
   }
 
   // Extract differences and similarities
@@ -608,39 +618,15 @@ const generateEmailHtml = (data, domain) => {
 
   // Build the email HTML content
   const emailHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Differences Report</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-        }
-        .container {
-          max-width: 600px;
-          margin: auto;
-        }
-        a {
-          color: #007bff;
-          text-decoration: none;
-        }
-        a:hover {
-          text-decoration: underline;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h1>Differences Report</h1>
-        <p>PDF: <a href="${domain}/${pdfPath}" target="_blank">${pdfPath}</a></p>
-        <p>HTML: <a href="${domain}/${htmlPath}" target="_blank">${htmlPath}</a></p>
-        <p>Old Screen: <a href="${domain}/${oldScreen}" target="_blank">${oldScreen}</a></p>
+      <div style="max-width: 600px; margin: auto;">
+        <h1 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h1>
+        <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
+        <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap//${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
+        <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap//${oldScreen}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
 
-        <h2>String 1 Differences</h2>
-        <pre>${string1Diff}</pre>
+        <h2 style="font-family: Arial, sans-serif; font-color:red">New Text Detected</h2>
+        <pre style="font-family: 'Arial', Courier, monospace;">${string1Diff}</pre>
       </div>
-    </body>
-    </html>
   `;
 
   return emailHtml;
