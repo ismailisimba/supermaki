@@ -3,6 +3,7 @@ const crypto = new crypt();
 const puppeteer = require("puppeteer");
 const pixelmatch = require("pixelmatch");
 const fs = require("fs");
+const fsp = require('fs.promises');
 const PNG = require('pngjs').PNG;
 const sharp = require('sharp');
 
@@ -345,14 +346,21 @@ const geturl = async (req, res, next) => {
       // Save PDF
       const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
       await page.pdf({ path: pdfPath, format: "A4" });
+
+      //Save JSON of body text
+      const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
+      const innerTextData = await page.evaluate(() => document.body.innerText);
+      await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData }));
   
       // Upload HTML and PDF to Google Cloud Bucket
       await Promise.all([
         myBucket.upload(htmlPath, { destination: htmlPath }),
-        myBucket.upload(pdfPath, { destination: pdfPath })
+        myBucket.upload(pdfPath, { destination: pdfPath }),
+        myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath })
+  
       ]);
       await browser.close();
-      res.send({htmlPath,pdfPath})
+      res.send({htmlPath,pdfPath,innerTextJsonPath})
 
     }catch(e){
       console.log(e)
@@ -410,12 +418,19 @@ const comparescraps = async (req, res, next) => {
       fs.writeFileSync(htmlPath, htmlContent);
       await myBucket.upload(htmlPath, { destination: htmlPath });
 
+      //
+      const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
+      const innerTextData = await page.evaluate(() => document.body.innerText);
+      await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData }));
+      await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
+  
+
       // Save and Upload PDF
       const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
       await page.pdf({ path: pdfPath, format: "A4" });
       await myBucket.upload(pdfPath, { destination: pdfPath });
       await browser.close();
-      res.send({ message: "HTML and PDF saved", pdfUrl: `.../${pdfPath}`, htmlUrl: `.../${htmlPath}`,data:{comparisonResult:[{"type":"No Difference"}]} });
+      res.send({ message: "HTML and PDF saved", pdfUrl: `.../${pdfPath}`, htmlUrl: `.../${htmlPath}`,jsonPath:`.../${innerTextJsonPath}`,data:{comparisonResult:[{"type":"No Difference"}]} });
       return;
     }else{
     
@@ -426,46 +441,34 @@ const comparescraps = async (req, res, next) => {
           const htmlPath = `${timestamp}-${domain.replaceAll(".", "_")}.html`;
           fs.writeFileSync(htmlPath, htmlContent);
           await myBucket.upload(htmlPath, { destination: htmlPath });
+
+          //
+          const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
+          const innerTextData = await page.evaluate(() => document.body.innerText);
+          await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData }));
+          await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
+      
     
           // Save and Upload PDF
           const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
           await page.pdf({ path: pdfPath, format: "A4" });
           await myBucket.upload(pdfPath, { destination: pdfPath });
         
-            const elementsData = await page.evaluate(() => {
-              const element = document.querySelectorAll('body')[0];
-              const data = [];
-              data.push({
-                id: "bodyOne",
-                className: element.className,
-                innerText: element.innerText,
-              });
-            
-              return data;
-            });
+      
         
       
       const comparisonResult = [];
-      const oldFileData = await oldHtmlFile.download().then(data => data[0]).catch(e => {
-          console.log(e);
-        });
-        
-        // Convert oldFileData to elements and compare
-        await page.setContent(oldFileData.toString());
 
-        const oldElementsData = await page.evaluate(() => {
-          const element = document.querySelectorAll('body')[0];
-          const data = [];
-          data.push({
-            id: "bodyOne",
-            className: element.className,
-            innerText: element.innerText,
-          });
-          return data;
-        });
-          const resulty = findDifference(elementsData[0].innerText,oldElementsData[0].innerText)
-          if(resulty&&resulty.string1Diff){
-            comparisonResult.push(resulty);
+          const oldInnerTextJsonFile = myBucket.file(`${oldScreen}-innerText.json`);
+          const [oldInnerTextJsonExists] = await oldInnerTextJsonFile.exists();
+          if (oldInnerTextJsonExists) {
+          const oldInnerTextData = await oldInnerTextJsonFile.download().then(data => JSON.parse(data[0])).catch(e => console.log(e));
+
+          const newInnerTextData = await page.evaluate(() => document.body.innerText);
+          const resulty = findDifference(newInnerTextData, oldInnerTextData.innerText);
+          if (resulty && resulty.string1Diff) {
+          comparisonResult.push(resulty);
+          }
           }
 
 
@@ -477,7 +480,7 @@ const comparescraps = async (req, res, next) => {
           comparisonResult.push({ type: 'No Difference' });
         }
         await browser.close();
-        const data = { pdfPath, htmlPath, oldScreen,comparisonResult };
+        const data = { pdfPath, htmlPath, oldScreen, innerTextJsonPath,comparisonResult };
         const someHtml = generateEmailHtml(data,urlToScreen);
         res.send({data,someHtml});
       
@@ -541,6 +544,8 @@ const getscrap =  async(req,res,next) =>{
 }
 
 function findDifference(str1, str2) {
+  console.log("str1",str1)
+  console.log("str2",str2)
   let i = 0;
   let j = 0;
   let similarities = [];
@@ -604,11 +609,11 @@ const generateEmailHtml = (data, domain) => {
     <div style="max-width: 600px; margin: auto;">
       <h1 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h1>
       <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
-      <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap//${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
-      <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap//${oldScreen}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
+      <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
+      <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
 
       <h2 style="font-family: Arial, sans-serif; font-color:green;">No New Text Detected</h2>
-      <pre style="font-family: 'Arial', Courier, monospace;">${string1Diff}</pre>
+      <pre style="font-family: 'Arial', Courier, monospace;">No new text has been detected during this run.</pre>
     </div>
 `;
   }
@@ -621,8 +626,8 @@ const generateEmailHtml = (data, domain) => {
       <div style="max-width: 600px; margin: auto;">
         <h1 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h1>
         <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
-        <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap//${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
-        <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap//${oldScreen}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
+        <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
+        <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
 
         <h2 style="font-family: Arial, sans-serif; font-color:red">New Text Detected</h2>
         <pre style="font-family: 'Arial', Courier, monospace;">${string1Diff}</pre>
