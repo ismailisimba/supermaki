@@ -87,7 +87,7 @@ const geturl_old = async (req,res,next)=>{
     await browser.b.close();
     }catch(e){
       console.log(e);
-      res.send(e);
+      res.send(e.message);
     }
 
   }else{
@@ -376,7 +376,7 @@ const comparescraps = async (req, res, next) => {
     try{
     let domain = (new URL(urlToScreen)).hostname;
     const browser = await puppeteer.launch({ args: ['--no-sandbox'], ignoreHTTPSErrors: true });
-        const page = await browser.newPage();
+    const page = await browser.newPage();
         
         // Cookie logic
         await page.goto(urlToScreen, { waitUntil: "networkidle2" });
@@ -415,7 +415,7 @@ const comparescraps = async (req, res, next) => {
       await page.pdf({ path: pdfPath, format: "A4" });
       await myBucket.upload(pdfPath, { destination: pdfPath });
       await browser.close();
-      res.send({ message: "HTML and PDF saved", pdfUrl: `.../${pdfPath}`, htmlUrl: `.../${htmlPath}` });
+      res.send({ message: "HTML and PDF saved", pdfUrl: `.../${pdfPath}`, htmlUrl: `.../${htmlPath}`,data:{comparisonResult:[{"type":"No Difference"}]} });
       return;
     }else{
     
@@ -474,16 +474,40 @@ const comparescraps = async (req, res, next) => {
         const newElements = elementsData.filter(onlyUnique);
         const oldElements = oldElementsData.filter(onlyUnique);
 
-        for (let i = 0; i < Math.min(newElements.length, oldElements.length); i++) {
-           if (newElements[i].innerText&&newElements[i].innerText.length>1&& hasThreeWordsWithTwoLettersOrMore(newElements[i].innerText)&& newElements[i].innerText !== oldElements[i].innerText&&!containsCode(oldElements[i].innerText) && !containsCode(newElements[i].innerText)) {
-            comparisonResult.push({
-              type: 'Text Mismatch',
-              element: newElements[i],
-              oldText: oldElements[i].innerText,
-              newText: newElements[i].innerText
-            });
-          }
-        }
+        // Helper function to create a unique identifier for each element
+        const createKey = (element) => `${element.innerText}`;
+
+        // Create a map for quick lookup of old elements
+        const oldElementMap = new Map();
+        oldElements.forEach((element) => {
+          oldElementMap.set(createKey(element), element);
+        });
+
+        newElements.forEach((newElement) => {
+          const key = createKey(newElement);
+          const oldElement = oldElementMap.get(key);
+            // If newElement does not exist in oldElements, mark as Text Mismatch if conditions are met
+          if (!oldElement) {
+              if (
+                newElement.innerText &&
+                newElement.innerText.length > 1 &&
+                hasThreeWordsWithTwoLettersOrMore(newElement.innerText) &&
+                !containsCode(newElement.innerText)
+              ) {
+                comparisonResult.push({
+                  type: 'Text Mismatch',
+                  element: newElement,
+                  oldText: null,
+                  newText: newElement.innerText,
+                });
+              }
+              return;
+            }
+
+        });
+
+// Now, comparisonResult contains all your mismatches
+
 
         if (comparisonResult.length === 0) {
           comparisonResult.push({ type: 'No Difference' });
@@ -499,7 +523,7 @@ const comparescraps = async (req, res, next) => {
 
   }catch(e){
     console.log(e);
-    res.send(e)
+    res.send(e.message)
   }
       
   } else {
@@ -580,7 +604,30 @@ function generateHTML(data,domain) {
   `;
 
   for (const item of data.comparisonResult) {
-    htmlString += `
+    console.log(item)
+    if(item.type&&item.type==="No Difference"){
+      htmlString += `
+      <table border="1">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>ID</th>
+            <th>Class Name</th>
+            <th>Old Text</th>
+            <th>New Text</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${item.type}</td>
+            <td>No Difference</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+
+    }else{
+      htmlString += `
       <table border="1">
         <thead>
           <tr>
@@ -602,6 +649,8 @@ function generateHTML(data,domain) {
         </tbody>
       </table>
     `;
+    }
+    
   }
 
   return htmlString;
