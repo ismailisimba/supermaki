@@ -431,22 +431,18 @@ const comparescraps = async (req, res, next) => {
           const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
           await page.pdf({ path: pdfPath, format: "A4" });
           await myBucket.upload(pdfPath, { destination: pdfPath });
-         
         
-        
-      const elementsData = await page.evaluate(() => {
-        const data = [];
-        document.querySelectorAll('*').forEach((element) => {
-          if (element.childElementCount === 0) {
-            data.push({
-              id: element.id,
-              className: element.className,
-              innerText: element.innerText,
+            const elementsData = await page.evaluate(() => {
+              const element = document.querySelectorAll('body')[0];
+              const data = [];
+              data.push({
+                id: "bodyOne",
+                className: element.className,
+                innerText: element.innerText,
+              });
+            
+              return data;
             });
-          }
-        });
-        return data;
-      });
         
       
       const comparisonResult = [];
@@ -458,53 +454,21 @@ const comparescraps = async (req, res, next) => {
         await page.setContent(oldFileData.toString());
 
         const oldElementsData = await page.evaluate(() => {
+          const element = document.querySelectorAll('body')[0];
           const data = [];
-          document.querySelectorAll('*').forEach((element) => {
-            if(element.childElementCount=== 0){
-              data.push({
-                id: element.id,
-                className: element.className,
-                innerText: element.innerText,
-              });
-            }
+          data.push({
+            id: "bodyOne",
+            className: element.className,
+            innerText: element.innerText,
           });
           return data;
         });
+          const resulty = findDifference(elementsData[0].innerText,oldElementsData[0].innerText)
+          if(resulty&&resulty.string1Diff){
+            comparisonResult.push(resulty);
+          }
 
-        const newElements = elementsData.filter(onlyUnique);
-        const oldElements = oldElementsData.filter(onlyUnique);
 
-        // Helper function to create a unique identifier for each element
-        const createKey = (element) => `${element.innerText}`;
-
-        // Create a map for quick lookup of old elements
-        const oldElementMap = new Map();
-        oldElements.forEach((element) => {
-          oldElementMap.set(createKey(element), element);
-        });
-
-        newElements.forEach((newElement) => {
-          const key = createKey(newElement);
-          const oldElement = oldElementMap.get(key);
-            // If newElement does not exist in oldElements, mark as Text Mismatch if conditions are met
-          if (!oldElement) {
-              if (
-                newElement.innerText &&
-                newElement.innerText.length > 1 &&
-                hasThreeWordsWithTwoLettersOrMore(newElement.innerText) &&
-                !containsCode(newElement.innerText)
-              ) {
-                comparisonResult.push({
-                  type: 'Text Mismatch',
-                  element: newElement,
-                  oldText: null,
-                  newText: newElement.innerText,
-                });
-              }
-              return;
-            }
-
-        });
 
 // Now, comparisonResult contains all your mismatches
 
@@ -514,7 +478,7 @@ const comparescraps = async (req, res, next) => {
         }
         await browser.close();
         const data = { pdfPath, htmlPath, oldScreen,comparisonResult };
-        const someHtml = generateHTML(data,urlToScreen);
+        const someHtml = generateEmailHtml(data,urlToScreen);
         res.send({data,someHtml});
       
 
@@ -576,85 +540,114 @@ const getscrap =  async(req,res,next) =>{
 
 }
 
+function findDifference(str1, str2) {
+  let i = 0;
+  let j = 0;
+  let similarities = [];
+  let diff1 = "";
+  let diff2 = "";
 
-
-
-function generateHTML(data,domain) {
-  const baseURL = 'https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap';
-
-  let htmlString = `
-    <h1>Comparison results for <a href="${domain}">${domain}</a></h1>
-    <table border="1">
-      <thead>
-        <tr>
-          <th>HTML Path</th>
-          <th>PDF Path</th>
-          <th>Old Screen</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><a href="${baseURL}/${data.htmlPath}">${data.htmlPath}</a></td>
-          <td><a href="${baseURL}/${data.pdfPath}">${data.pdfPath}</a></td>
-          <td><a href="${baseURL}/${data.oldScreen}">${data.oldScreen}</a></td>
-        </tr>
-      </tbody>
-    </table>
-    <h2>New Text</h2>
-  `;
-
-  for (const item of data.comparisonResult) {
-    console.log(item)
-    if(item.type&&item.type==="No Difference"){
-      htmlString += `
-      <table border="1">
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>ID</th>
-            <th>Class Name</th>
-            <th>Old Text</th>
-            <th>New Text</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>${item.type}</td>
-            <td>No Difference</td>
-          </tr>
-        </tbody>
-      </table>
-    `;
-
-    }else{
-      htmlString += `
-      <table border="1">
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>ID</th>
-            <th>Class Name</th>
-            <th>Old Text</th>
-            <th>New Text</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>${item.type}</td>
-            <td>${item.element.id}</td>
-            <td>${item.element.className}</td>
-            <td>${item.oldText}</td>
-            <td style="color: red;">${item.newText}</td>
-          </tr>
-        </tbody>
-      </table>
-    `;
+  while (i < str1.length && j < str2.length) {
+    // Find similar parts
+    let tempSim = "";
+    while (i < str1.length && j < str2.length && str1[i] === str2[j]) {
+      tempSim += str1[i];
+      i++;
+      j++;
     }
-    
+    if (tempSim) similarities.push(tempSim);
+
+    // Find different parts
+    let tempDiff1 = "";
+    let tempDiff2 = "";
+    while (i < str1.length && (j >= str2.length || str1[i] !== str2[j])) {
+      tempDiff1 += str1[i];
+      i++;
+    }
+    while (j < str2.length && (i >= str1.length || str1[i] !== str2[j])) {
+      tempDiff2 += str2[j];
+      j++;
+    }
+
+    if (tempDiff1 || tempDiff2) {
+      diff1 += tempDiff1;
+      diff2 += tempDiff2;
+    }
   }
 
-  return htmlString;
+  // Check if there are remaining characters in either string
+  if (i < str1.length) diff1 += str1.slice(i);
+  if (j < str2.length) diff2 += str2.slice(j);
+
+  // Return the results
+  if (diff1 || diff2) {
+    return {
+      string1Diff: diff1,
+      string2Diff: diff2,
+      similarities: similarities,
+    };
+  } else {
+    return '';
+  }
 }
+
+
+
+
+const generateEmailHtml = (data, domain) => {
+  // Extract necessary data
+  const { pdfPath, htmlPath, oldScreen, comparisonResult } = data;
+
+  // Check if comparisonResult exists and has content
+  if (!comparisonResult || comparisonResult.length === 0 || !comparisonResult[0].string1Diff) {
+    return 'No differences to display.';
+  }
+
+  // Extract differences and similarities
+  const { string1Diff } = comparisonResult[0];
+
+  // Build the email HTML content
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Differences Report</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+        }
+        .container {
+          max-width: 600px;
+          margin: auto;
+        }
+        a {
+          color: #007bff;
+          text-decoration: none;
+        }
+        a:hover {
+          text-decoration: underline;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>Differences Report</h1>
+        <p>PDF: <a href="${domain}/${pdfPath}" target="_blank">${pdfPath}</a></p>
+        <p>HTML: <a href="${domain}/${htmlPath}" target="_blank">${htmlPath}</a></p>
+        <p>Old Screen: <a href="${domain}/${oldScreen}" target="_blank">${oldScreen}</a></p>
+
+        <h2>String 1 Differences</h2>
+        <pre>${string1Diff}</pre>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return emailHtml;
+};
+
+
+
 
 
 
