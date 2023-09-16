@@ -607,13 +607,13 @@ const generateEmailHtml = (data, domain) => {
   if (!comparisonResult || comparisonResult.length === 0 || !comparisonResult[0].string1Diff) {
     return `
     <div style="max-width: 600px; margin: auto;">
-      <h1 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h1>
+      <h2 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h2>
       <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
       <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
       <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json','.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
 
-      <h2 style="font-family: Arial, sans-serif; font-color:green;">No New Text Detected</h2>
-      <pre style="font-family: 'Arial', Courier, monospace;">No new text has been detected during this run.</pre>
+      <h3 style="font-family: Arial, sans-serif; font-color:green;">No New Text Detected</h3>
+      <p style="font-family: 'Arial', Courier, monospace; font-size:12px">No new text has been detected during this run.</p>
     </div>
 `;
   }
@@ -624,14 +624,14 @@ const generateEmailHtml = (data, domain) => {
   // Build the email HTML content
   const emailHtml = `
       <div style="max-width: 600px; margin: auto;">
-        <h1 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h1>
+        <h2 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h2>
         <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
         <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
         <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json','.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
 
 
-        <h2 style="font-family: Arial, sans-serif; font-color:red">New Text Detected</h2>
-        <pre style="font-family: 'Arial', Courier, monospace;">${string1Diff}</pre>
+        <h3 style="font-family: Arial, sans-serif; font-color:red">New Text Detected</h3>
+        <p style="font-family: 'Arial', Courier, monospace; font-size:12px">${string1Diff}</p>
       </div>
   `;
 
