@@ -499,7 +499,7 @@ const comparescraps = async (req, res, next) => {
 
   }catch(e){
     console.log(e);
-    res.send("error")
+    res.send(e)
   }
       
   } else {
