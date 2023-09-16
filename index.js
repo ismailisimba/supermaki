@@ -9,6 +9,7 @@ const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 
 const formidable = require('formidable');
+const specialDomains = [];
 
 const mydirtybs = new MDBS();
 const cookieManager = new cookieMan();

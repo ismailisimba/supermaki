@@ -18,14 +18,13 @@ const previousScreenshotPath = './temp/previous-screenshot.png';
 const currentScreenshotPath = './temp/current-screenshot.png';
 const diffScreenshotPath = './temp/diff-screenshot.png';
 const filename = "./temp/temp6942.png"
-
+const specialDomains = [];
 
 
 
 
 class webscrap {
     constructor(){
-        this.checksource = checksource;
         this.getalliancepdf = getalliancepdf;
         this.geturl = geturl;
         this.getoldscraps = getoldscraps;
@@ -36,41 +35,7 @@ class webscrap {
 }
 
 
-const checksource = async (req,res,next)=>{
-    
-    var rows = {};
-    try{
-        rows = await bigqueryClient
-        .dataset("makione")
-        .table("keys")
-        .query(`SELECT *               
-        FROM \`ismizo.makione.keys\`
-        WHERE name='allkey'
-        ORDER BY name NULLS LAST;`).then(r=>{
-        return r;
-
-    }).then((r)=>{
-        
-        const allkey = r[0][0].value;
-        const bodyPlain = crypto.decrypt(req.body,allkey);
-        const r2 = JSON.parse(bodyPlain);
-        const obj = {};
-        if(r2.usnum==="ismaadmin"){
-            obj["source"] = "ok";
-        }else{
-            obj["source"] = "notok";
-        };
-        return obj;
-    })
-    }catch(e){
-        rows = {"err":"err","details":JSON.stringify(e, null, 2)};
-    }
-
-        
-    res.send(rows);
-}
-
-const geturl = async (req,res,next)=>{
+const geturl_old = async (req,res,next)=>{
 
     const url = req.params.id;
     if(isValidHttpUrl(url)){
@@ -158,7 +123,7 @@ const getoldscraps = async (req,res,next)=>{
     }
 }
 
-const getscrap =  async(req,res,next) =>{
+const getscrap_old =  async(req,res,next) =>{
     const file = myBucket.file(req.params.id);
     const exists = await file.exists();
 
@@ -184,7 +149,7 @@ const getscrap =  async(req,res,next) =>{
 
 }
 
-const comparescraps = async(req,res,next)=>{
+const comparescraps_old = async(req,res,next)=>{
     const obj ={} 
     const urlToScreen = req.params.url;
     if(isValidHttpUrl(urlToScreen)){
@@ -341,5 +306,316 @@ const isValidHttpUrl = (string)=>{
 
   return url.protocol === "http:" || url.protocol === "https:";
 }
+
+
+
+const geturl = async (req, res, next) => {
+  const url = req.params.id;
+  if (isValidHttpUrl(url)) {
+    let domain = (new URL(url)).hostname;
+
+    // Check if domain requires special action
+    if (specialDomains.includes(domain)) {
+      // Custom actions for special domains
+    }
+
+    try{
+
+      const browser = await puppeteer.launch({args: ['--no-sandbox'], ignoreHTTPSErrors: true});
+      const page = await browser.newPage();
+
+      await page.goto(url, { waitUntil: "networkidle2" });
+      await page.evaluate(_ => {
+        function xcc_contains(selector, text) {
+          var elements = document.querySelectorAll(selector);
+          return Array.prototype.filter.call(elements, function(element){
+              return RegExp(text, "i").test(element.textContent.trim());
+          });
+      }
+      var _xcc;
+      _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|Accept)$');
+      if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
+      });
+      const date = cookieManager.customDateFormater();
+      const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
+      const htmlContent = await page.content();
+      const htmlPath = `${timestamp}-${domain.replaceAll(".", "_")}.html`;
+      fs.writeFileSync(htmlPath, htmlContent);
+  
+      // Save PDF
+      const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
+      await page.pdf({ path: pdfPath, format: "A4" });
+  
+      // Upload HTML and PDF to Google Cloud Bucket
+      await Promise.all([
+        myBucket.upload(htmlPath, { destination: htmlPath }),
+        myBucket.upload(pdfPath, { destination: pdfPath })
+      ]);
+      await browser.close();
+      res.send({htmlPath,pdfPath})
+
+    }catch(e){
+      console.log(e)
+      res.send ("error");
+    }
+   
+
+  } else {
+    res.send({ "notValidUrl": url });
+  }
+};
+
+
+
+
+const comparescraps = async (req, res, next) => {
+  const urlToScreen = req.params.url;
+  const oldScreen =  req.params.picUrl;
+  if (isValidHttpUrl(urlToScreen)) {
+
+    try{
+    let domain = (new URL(urlToScreen)).hostname;
+    const browser = await puppeteer.launch({ args: ['--no-sandbox'], ignoreHTTPSErrors: true });
+        const page = await browser.newPage();
+        
+        // Cookie logic
+        await page.goto(urlToScreen, { waitUntil: "networkidle2" });
+        await page.evaluate(_ => {
+          function xcc_contains(selector, text) {
+            var elements = document.querySelectorAll(selector);
+            return Array.prototype.filter.call(elements, function(element){
+                return RegExp(text, "i").test(element.textContent.trim());
+            });
+        }
+        var _xcc;
+        _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|Accept)$');
+        if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
+        });
+
+    // Check if domain requires special action
+    if (specialDomains.includes(domain)) {
+      // Custom actions for special domains
+    }
+
+    // ... rest of your code
+    // Check if old HTML exists, if not, save new HTML and PDF
+    const oldHtmlFile = myBucket.file(oldScreen);
+    const [oldHtmlExists] = await oldHtmlFile.exists();
+    if (!oldHtmlExists) {
+      // Save and Upload HTML
+      const date = cookieManager.customDateFormater();
+      const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
+      const htmlContent = await page.content();
+      const htmlPath = `${timestamp}-${domain.replaceAll(".", "_")}.html`;
+      fs.writeFileSync(htmlPath, htmlContent);
+      await myBucket.upload(htmlPath, { destination: htmlPath });
+
+      // Save and Upload PDF
+      const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
+      await page.pdf({ path: pdfPath, format: "A4" });
+      await myBucket.upload(pdfPath, { destination: pdfPath });
+      await browser.b.close();
+      res.send({ message: "HTML and PDF saved", pdfUrl: `.../${pdfPath}`, htmlUrl: `.../${htmlPath}` });
+      return;
+    }else{
+    
+          // Save and Upload HTML
+          const date = cookieManager.customDateFormater();
+          const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
+          const htmlContent = await page.content();
+          const htmlPath = `${timestamp}-${domain.replaceAll(".", "_")}.html`;
+          fs.writeFileSync(htmlPath, htmlContent);
+          await myBucket.upload(htmlPath, { destination: htmlPath });
+    
+          // Save and Upload PDF
+          const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
+          await page.pdf({ path: pdfPath, format: "A4" });
+          await myBucket.upload(pdfPath, { destination: pdfPath });
+         
+        
+        
+      const elementsData = await page.evaluate(() => {
+        const data = [];
+        document.querySelectorAll('*').forEach((element) => {
+          if (element.childElementCount === 0) {
+            data.push({
+              id: element.id,
+              className: element.className,
+              innerText: element.innerText,
+            });
+          }
+        });
+        return data;
+      });
+        
+      
+      const comparisonResult = [];
+      const oldFileData = await oldHtmlFile.download().then(data => data[0]).catch(e => {
+          console.log(e);
+        });
+        
+        // Convert oldFileData to elements and compare
+        await page.setContent(oldFileData.toString());
+
+        const oldElementsData = await page.evaluate(() => {
+          const data = [];
+          document.querySelectorAll('*').forEach((element) => {
+            if(element.childElementCount=== 0){
+              data.push({
+                id: element.id,
+                className: element.className,
+                innerText: element.innerText,
+              });
+            }
+          });
+          return data;
+        });
+
+        const newElements = elementsData.filter(onlyUnique);
+        const oldElements = oldElementsData.filter(onlyUnique);
+
+        for (let i = 0; i < Math.min(newElements.length, oldElements.length); i++) {
+           if (newElements[i].innerText&&newElements[i].innerText.length>1&& hasThreeWordsWithTwoLettersOrMore(newElements[i].innerText)&& newElements[i].innerText !== oldElements[i].innerText&&!containsCode(oldElements[i].innerText) && !containsCode(newElements[i].innerText)) {
+            comparisonResult.push({
+              type: 'Text Mismatch',
+              element: newElements[i],
+              oldText: oldElements[i].innerText,
+              newText: newElements[i].innerText
+            });
+          }
+        }
+
+        if (comparisonResult.length === 0) {
+          comparisonResult.push({ type: 'No Difference' });
+        }
+        await browser.close();
+        const data = { pdfPath, htmlPath, oldScreen,comparisonResult };
+        const someHtml = generateHTML(data,urlToScreen);
+        res.send({data,someHtml});
+      
+
+      
+    }
+
+  }catch(e){
+    console.log(e);
+    res.send("error")
+  }
+      
+  } else {
+    res.send({ "notValidUrl": urlToScreen });
+  }
+};
+
+function onlyUnique(value, index, array) {
+  return array.indexOf(value) === index;
+}
+
+function hasThreeWordsWithTwoLettersOrMore(newText) {
+  // Remove any extra white spaces and split the text into an array of words
+  const words = newText.trim().split(/\s+/);
+
+  // Filter out words that have less than 2 characters
+  const filteredWords = words.filter(word => word.length >= 2);
+
+  // Check if there are at least 3 such words
+  return filteredWords.length >= 3;
+}
+
+const containsCode = (text) => {
+  return /<[^>]*>|{[^}]*}|;/.test(text);
+};
+
+const getscrap =  async(req,res,next) =>{
+  const file = myBucket.file(req.params.id);
+  const exists = await file.exists();
+
+    if(exists[0]){
+      const meta = await file.getMetadata().then(function(data) {
+        const metadata = data[0];
+        const apiResponse = data[1];
+        return metadata;
+      });
+      const fileData = await file.download().then(function(data) {
+          const contents = data[0];
+          return contents;
+        }).catch(e=>{
+          console.log(e);
+        });
+        res.set('Content-Disposition', `inline; filename="${req.params.id+"."+meta.contentType.split("/")[1]}"`);
+        res.contentType(`${meta.contentType}`);
+        res.send(fileData);
+
+    }else{
+      res.send({"no":"scrap"});
+    }
+
+}
+
+
+
+
+function generateHTML(data,domain) {
+  const baseURL = 'https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap';
+
+  let htmlString = `
+    <h1>Comparison results for <a href="${domain}">${domain}</a></h1>
+    <table border="1">
+      <thead>
+        <tr>
+          <th>HTML Path</th>
+          <th>PDF Path</th>
+          <th>Old Screen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><a href="${baseURL}/${data.htmlPath}">${data.htmlPath}</a></td>
+          <td><a href="${baseURL}/${data.pdfPath}">${data.pdfPath}</a></td>
+          <td><a href="${baseURL}/${data.oldScreen}">${data.oldScreen}</a></td>
+        </tr>
+      </tbody>
+    </table>
+    <h2>New Text</h2>
+  `;
+
+  for (const item of data.comparisonResult) {
+    htmlString += `
+      <table border="1">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>ID</th>
+            <th>Class Name</th>
+            <th>Old Text</th>
+            <th>New Text</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${item.type}</td>
+            <td>${item.element.id}</td>
+            <td>${item.element.className}</td>
+            <td>${item.oldText}</td>
+            <td style="color: red;">${item.newText}</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
+  }
+
+  return htmlString;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 module.exports = webscrap;
