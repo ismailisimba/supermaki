@@ -414,7 +414,7 @@ const comparescraps = async (req, res, next) => {
       const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
       await page.pdf({ path: pdfPath, format: "A4" });
       await myBucket.upload(pdfPath, { destination: pdfPath });
-      await browser.b.close();
+      await browser.close();
       res.send({ message: "HTML and PDF saved", pdfUrl: `.../${pdfPath}`, htmlUrl: `.../${htmlPath}` });
       return;
     }else{
