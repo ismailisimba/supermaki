@@ -516,7 +516,7 @@ const comparescraps = async (req, res, next) => {
             const oldInnerTextData = await oldInnerTextJsonFile.download().then(data => JSON.parse(data[0])).catch(e => console.log(e));
           const newInnerTextData = await page.evaluate(() => document.body.innerText);
           const resulty = findDifference(newInnerTextData, oldInnerTextData.innerText);
-          const chanceOfDiff = typeof resulty!="string1"?parseFloat(resulty.string1DiffPercentage):0;
+          const chanceOfDiff = typeof resulty!="string"?parseFloat(resulty.string1DiffPercentage):0;
           if (resulty && resulty.string1Diff && chanceOfDiff>5) {
               //const htmlComp = await compareHtmlFromBucket(urlToScreen,`${oldScreen.replace('-innerText.json','.html')}`);
               //console.log("shitShow1",htmlComp)
