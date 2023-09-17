@@ -48,7 +48,7 @@ const geturl_old = async (req,res,next)=>{
     let domain = (new URL(url));
     domain = domain.hostname;
     const browser = {};
-    browser.b = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true});
+    browser.b = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
     const page = {};
     page.b = await browser.b.newPage();
     await page.b.setViewport({
@@ -62,6 +62,7 @@ const geturl_old = async (req,res,next)=>{
     const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
 
     await page.b.goto(url,{waitUntil:"networkidle2"});
+    await new Promise(resolve => setTimeout(resolve, 3000));
     await page.b.evaluate(_ => {
       function xcc_contains(selector, text) {
           var elements = document.querySelectorAll(selector);
@@ -177,6 +178,8 @@ const comparescraps_old = async(req,res,next)=>{
   
     // Launch Puppeteer and navigate to the URL
     await page.goto(urlToScreen,{waitUntil:"networkidle2"});
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
     await page.evaluate(_ => {
       function xcc_contains(selector, text) {
           var elements = document.querySelectorAll(selector);
@@ -322,10 +325,13 @@ const geturl = async (req, res, next) => {
 
     try{
 
-      const browser = await puppeteer.launch({args: ['--no-sandbox'], ignoreHTTPSErrors: true});
+      const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
       const page = await browser.newPage();
+      
 
       await page.goto(url, { waitUntil: "networkidle2" });
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
       await page.evaluate(_ => {
         function xcc_contains(selector, text) {
           var elements = document.querySelectorAll(selector);
@@ -334,9 +340,34 @@ const geturl = async (req, res, next) => {
           });
       }
       var _xcc;
-      _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|Accept)$');
+      _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button, [class*=cookie] i, [class*=close] i, #CybotCookiebotDialogBodyLevelButtonAccept', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|ok|Accept|Close|close)$');
       if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
       });
+
+      // Add these lines to set the user agent and locale
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+  await page.setExtraHTTPHeaders({
+    'Accept-Language': 'en-US',
+  });
+
+  // Add this line to disable animations
+  await page.evaluate(() => {
+    const instantTransitionCssRule = '* { transition: none!important; animation: none!important; }';
+    const styleSheet = document.createElement('style');
+    styleSheet.type = 'text/css';
+    styleSheet.innerText = instantTransitionCssRule;
+    document.head.appendChild(styleSheet);
+  });
+
+  // Add this line to scroll to the top before taking a screenshot
+  await page.evaluate(() => window.scrollTo(0, 0));
+
+
+
+
+
+
+
       const date = cookieManager.customDateFormater();
       const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
       const htmlContent = await page.content();
@@ -344,8 +375,7 @@ const geturl = async (req, res, next) => {
       fs.writeFileSync(htmlPath, htmlContent);
   
       // Save PDF
-      const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
-      await page.pdf({ path: pdfPath, format: "A4" });
+      
 
       //Save JSON of body text
       const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
@@ -355,10 +385,11 @@ const geturl = async (req, res, next) => {
       // Upload HTML and PDF to Google Cloud Bucket
       await Promise.all([
         myBucket.upload(htmlPath, { destination: htmlPath }),
-        myBucket.upload(pdfPath, { destination: pdfPath }),
+        //myBucket.upload(pdfPath, { destination: pdfPath }),
         myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath })
   
       ]);
+      const pdfPath = await trySavingPdf(timestamp,domain,page);
       await browser.close();
       res.send({htmlPath,pdfPath,innerTextJsonPath})
 
@@ -383,11 +414,13 @@ const comparescraps = async (req, res, next) => {
 
     try{
     let domain = (new URL(urlToScreen)).hostname;
-    const browser = await puppeteer.launch({ args: ['--no-sandbox'], ignoreHTTPSErrors: true });
+    const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
     const page = await browser.newPage();
         
         // Cookie logic
         await page.goto(urlToScreen, { waitUntil: "networkidle2" });
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
         await page.evaluate(_ => {
           function xcc_contains(selector, text) {
             var elements = document.querySelectorAll(selector);
@@ -396,9 +429,28 @@ const comparescraps = async (req, res, next) => {
             });
         }
         var _xcc;
-        _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|Accept)$');
+        _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button, [class*=cookie] i, [class*=close] i, #CybotCookiebotDialogBodyLevelButtonAccept', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|ok|Accept|Close|close)$');
         if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
         });
+
+        // Add these lines to set the user agent and locale
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+        await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US',
+        });
+
+        // Add this line to disable animations
+        await page.evaluate(() => {
+        const instantTransitionCssRule = '* { transition: none!important; animation: none!important; }';
+        const styleSheet = document.createElement('style');
+        styleSheet.type = 'text/css';
+        styleSheet.innerText = instantTransitionCssRule;
+        document.head.appendChild(styleSheet);
+        });
+
+        // Add this line to scroll to the top before taking a screenshot
+        await page.evaluate(() => window.scrollTo(0, 0));
+
 
     // Check if domain requires special action
     if (specialDomains.includes(domain)) {
@@ -426,9 +478,7 @@ const comparescraps = async (req, res, next) => {
   
 
       // Save and Upload PDF
-      const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
-      await page.pdf({ path: pdfPath, format: "A4" });
-      await myBucket.upload(pdfPath, { destination: pdfPath });
+      const pdfPath = await trySavingPdf(timestamp,domain,page);
       await browser.close();
       res.send({ message: "HTML and PDF saved", pdfUrl: `.../${pdfPath}`, htmlUrl: `.../${htmlPath}`,jsonPath:`.../${innerTextJsonPath}`,data:{comparisonResult:[{"type":"No Difference"}]} });
       return;
@@ -450,26 +500,32 @@ const comparescraps = async (req, res, next) => {
       
     
           // Save and Upload PDF
-          const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
-          await page.pdf({ path: pdfPath, format: "A4" });
-          await myBucket.upload(pdfPath, { destination: pdfPath });
+          const pdfPath = await trySavingPdf(timestamp,domain,page);
         
       
         
       
       const comparisonResult = [];
 
-          const oldInnerTextJsonFile = myBucket.file(`${oldScreen}-innerText.json`);
-          const [oldInnerTextJsonExists] = await oldInnerTextJsonFile.exists();
-          if (oldInnerTextJsonExists) {
-          const oldInnerTextData = await oldInnerTextJsonFile.download().then(data => JSON.parse(data[0])).catch(e => console.log(e));
-
+          const oldInnerTextJsonFile = myBucket.file(`${oldScreen}`);
+    
+      
+          //const htmlComp = await compareHtmlFromBucket(urlToScreen,`${oldScreen.replace('-innerText.json','.html')}`);
+          //console.log("shitShow1",htmlComp)
+      
+            const oldInnerTextData = await oldInnerTextJsonFile.download().then(data => JSON.parse(data[0])).catch(e => console.log(e));
           const newInnerTextData = await page.evaluate(() => document.body.innerText);
           const resulty = findDifference(newInnerTextData, oldInnerTextData.innerText);
-          if (resulty && resulty.string1Diff) {
-          comparisonResult.push(resulty);
+          const chanceOfDiff = typeof resulty!="string1"?parseFloat(resulty.string1DiffPercentage):0;
+          if (resulty && resulty.string1Diff && chanceOfDiff>5) {
+              //const htmlComp = await compareHtmlFromBucket(urlToScreen,`${oldScreen.replace('-innerText.json','.html')}`);
+              //console.log("shitShow1",htmlComp)
+           if(true){
+            comparisonResult.push(resulty);
+           }
           }
-          }
+          
+          
 
 
 
@@ -497,6 +553,94 @@ const comparescraps = async (req, res, next) => {
     res.send({ "notValidUrl": urlToScreen });
   }
 };
+
+
+
+const compareHtmlFromBucket = async (url,filename) => {
+  // Initialize browser and page
+  const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
+  const page = await browser.newPage();
+
+  // Navigate to URL and get its HTML content
+  await page.goto(url, { waitUntil: 'networkidle2' });
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  const newHtmlContent = await page.content();
+
+  // Evaluate the new page to a constant
+  const newPageData = await page.evaluate(() => {
+    const elements = document.querySelectorAll('*');
+    return Array.from(elements).map(el => ({
+      tagName: el.tagName,
+      id: el.id,
+      className: el.className,
+      attributes: Array.from(el.attributes).map(attr => ({ name: attr.name, value: attr.value })),
+      innerText: el.innerText,
+    }));
+  });
+
+  const file = myBucket.file(filename);
+
+  let oldHtmlContent;
+  try {
+    oldHtmlContent = (await file.download())[0].toString();
+  } catch (err) {
+    console.error('Error downloading file from bucket:', err);
+    return false;
+  }
+
+  // Load the old HTML content into a new Puppeteer page
+  const oldPage = await browser.newPage();
+  await oldPage.setContent(oldHtmlContent);
+
+  // Evaluate the old page to a constant
+  const oldPageData = await oldPage.evaluate(() => {
+    const elements = document.querySelectorAll('*');
+    return Array.from(elements).map(el => ({
+      tagName: el.tagName,
+      id: el.id,
+      className: el.className,
+      attributes: Array.from(el.attributes).map(attr => ({ name: attr.name, value: attr.value })),
+      innerText: el.innerText,
+    }));
+  });
+
+  await browser.close();
+
+  // Now compare the oldPageData and newPageData constants
+  if (oldPageData.length !== newPageData.length) {
+    return true; // Different number of elements
+  }
+
+  for (let i = 0; i < oldPageData.length; i++) {
+    const oldEl = oldPageData[i];
+    const newEl = newPageData[i];
+
+    if (false//oldEl.tagName !== newEl.tagName || 
+        //oldEl.id !== newEl.id //|| 
+        //oldEl.className !== newEl.className || 
+        //oldEl.innerText !== newEl.innerText// ||
+        //oldEl.attributes.length !== newEl.attributes.length
+
+        ){
+      return true; // Differences found
+    }
+
+    /*for (let j = 0; j < oldEl.attributes.length; j++) {
+      const oldAttr = oldEl.attributes[j];
+      const newAttr = newEl.attributes.find(attr => attr.name === oldAttr.name);
+      if (!newAttr || newAttr.value !== oldAttr.value) {
+        return true; // Attribute differences found
+      }
+    }*/
+  }
+
+  return false; // No differences found
+};
+
+
+
+
 
 function onlyUnique(value, index, array) {
   return array.indexOf(value) === index;
@@ -543,9 +687,7 @@ const getscrap =  async(req,res,next) =>{
 
 }
 
-function findDifference(str1, str2) {
-  console.log("str1",str1)
-  console.log("str2",str2)
+/*function findDifference(str1, str2) {
   let i = 0;
   let j = 0;
   let similarities = [];
@@ -584,17 +726,150 @@ function findDifference(str1, str2) {
   if (i < str1.length) diff1 += str1.slice(i);
   if (j < str2.length) diff2 += str2.slice(j);
 
+  // Calculate percentages
+  let similarityPercentage = 0;
+  let string1DiffPercentage = 0;
+
+  const totalSimilarityLength = similarities.reduce((acc, s) => acc + s.length, 0);
+  if (str1.length > 0) {
+    similarityPercentage = (totalSimilarityLength / str1.length) * 100;
+    string1DiffPercentage = (diff1.length / str1.length) * 100;
+  }
+
   // Return the results
-  if (diff1 || diff2) {
+  if (diff1 || diff2 || similarities.length > 0) {
     return {
       string1Diff: diff1,
       string2Diff: diff2,
       similarities: similarities,
+      similarityPercentage: similarityPercentage.toFixed(2),
+      string1DiffPercentage: string1DiffPercentage.toFixed(2),
+    };
+  } else {
+    return '';
+  }
+}*/
+
+/*function findDifference(str1, str2) {
+  const words1 = str1.split(/\s+/);
+  const words2 = str2.split(/\s+/);
+  let i = 0;
+  let j = 0;
+  let similarities = [];
+  let diff1 = [];
+  let diff2 = [];
+
+  while (i < words1.length && j < words2.length) {
+    let tempSim = [];
+    while (i < words1.length && j < words2.length && words1[i] === words2[j]) {
+      tempSim.push(words1[i]);
+      i++;
+      j++;
+    }
+    if (tempSim.length > 0) similarities.push(...tempSim);
+
+    let tempDiff1 = [];
+    let tempDiff2 = [];
+    while (i < words1.length && (j >= words2.length || words1[i] !== words2[j])) {
+      tempDiff1.push(words1[i]);
+      i++;
+    }
+    while (j < words2.length && (i >= words1.length || words1[i] !== words2[j])) {
+      tempDiff2.push(words2[j]);
+      j++;
+    }
+
+    if (tempDiff1.length > 0 || tempDiff2.length > 0) {
+      diff1.push(...tempDiff1);
+      diff2.push(...tempDiff2);
+    }
+  }
+
+  if (i < words1.length) diff1.push(...words1.slice(i));
+  if (j < words2.length) diff2.push(...words2.slice(j));
+
+  let similarityPercentage = 0;
+  let string1DiffPercentage = 0;
+
+  if (words1.length > 0) {
+    similarityPercentage = (similarities.length / words1.length) * 100;
+    string1DiffPercentage = (diff1.length / words1.length) * 100;
+  }
+
+  if (diff1.length > 0 || diff2.length > 0 || similarities.length > 0) {
+    return {
+      string1Diff: diff1.join(" "),
+      string2Diff: diff2.join(" "),
+      similarities: similarities.join(" "),
+      similarityPercentage: similarityPercentage.toFixed(2),
+      string1DiffPercentage: string1DiffPercentage.toFixed(2),
+    };
+  } else {
+    return '';
+  }
+}*/
+
+function findDifference(str1, str2) {
+  const words1 = str1.split(/(\s+)/);
+  const words2 = str2.split(/(\s+)/);
+  let i = 0;
+  let j = 0;
+  let similarities = [];
+  let diff1 = [];
+  let diff2 = [];
+
+  while (i < words1.length && j < words2.length) {
+    let tempSim = [];
+    while (i < words1.length && j < words2.length && words1[i] === words2[j]) {
+      tempSim.push(words1[i]);
+      i++;
+      j++;
+    }
+    if (tempSim.length > 0) similarities.push(...tempSim);
+
+    let tempDiff1 = [];
+    let tempDiff2 = [];
+    while (i < words1.length && (j >= words2.length || words1[i] !== words2[j])) {
+      tempDiff1.push(words1[i]);
+      i++;
+    }
+    while (j < words2.length && (i >= words1.length || words1[i] !== words2[j])) {
+      tempDiff2.push(words2[j]);
+      j++;
+    }
+
+    if (tempDiff1.length > 0 || tempDiff2.length > 0) {
+      diff1.push(...tempDiff1);
+      diff2.push(...tempDiff2);
+    }
+  }
+
+  if (i < words1.length) diff1.push(...words1.slice(i));
+  if (j < words2.length) diff2.push(...words2.slice(j));
+
+  let similarityPercentage = 0;
+  let string1DiffPercentage = 0;
+
+  const actualWords1 = words1.filter(word => word.trim() !== '');
+  if (actualWords1.length > 0) {
+    similarityPercentage = (similarities.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
+    string1DiffPercentage = (diff1.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
+  }
+
+  if (diff1.length > 0 || diff2.length > 0 || similarities.length > 0) {
+    return {
+      string1Diff: diff1.join(""),
+      string2Diff: diff2.join(""),
+      similarities: similarities.join(""),
+      similarityPercentage: similarityPercentage.toFixed(2),
+      string1DiffPercentage: string1DiffPercentage.toFixed(2),
     };
   } else {
     return '';
   }
 }
+
+
 
 
 
@@ -610,7 +885,7 @@ const generateEmailHtml = (data, domain) => {
       <h2 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h2>
       <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
       <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
-      <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json','.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
+      <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json','.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen.replace('-innerText.json','.pdf')}</a></p>
 
       <h3 style="font-family: Arial, sans-serif; font-color:green;">No New Text Detected</h3>
       <p style="font-family: 'Arial', Courier, monospace; font-size:12px">No new text has been detected during this run.</p>
@@ -627,7 +902,7 @@ const generateEmailHtml = (data, domain) => {
         <h2 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h2>
         <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
         <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
-        <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json','.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen}</a></p>
+        <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json','.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen.replace('-innerText.json','.pdf')}</a></p>
 
 
         <h3 style="font-family: Arial, sans-serif; font-color:red">New Text Detected</h3>
@@ -640,7 +915,17 @@ const generateEmailHtml = (data, domain) => {
 
 
 
-
+const trySavingPdf =async(timestamp,domain,page)=>{
+          try{
+          const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
+          await page.pdf({ path: pdfPath});
+          await myBucket.upload(pdfPath, { destination: pdfPath });
+          return pdfPath
+          }catch(e){
+            console.log(e);
+            return e.message;
+          }
+}
 
 
 
