@@ -139,7 +139,7 @@ function createSafeFileName(url) {
   // Replace unsafe characters with _, and replace = with -
   const safeName = path.replace(/[\/\\:*?"<>|]/g, '_').replace(/=/g, '-');
 
-  return hostName.replace(".","_") +"-"+safeName;
+  return hostName.replaceAll(".","_") +"-"+safeName;
 }
 
 const getscrap_old =  async(req,res,next) =>{
