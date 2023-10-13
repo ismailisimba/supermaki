@@ -102,10 +102,12 @@ const geturl_old = async (req,res,next)=>{
 
 const getoldscraps = async (req,res,next)=>{
     const url = req.params.id;
+    const safeFileName = createSafeFileName(url);
     if(isValidHttpUrl(url)){
     let domain = (new URL(url));
     domain = domain.hostname;
-    const searchTerm = domain.replaceAll(".","_")
+    //const searchTerm = domain.replaceAll(".","_")
+    const searchTerm = safeFileName;
     const matchingFiles = [];
     
     const [files] = await myBucket.getFiles();
@@ -126,6 +128,18 @@ const getoldscraps = async (req,res,next)=>{
     }else{
       res.send({"notValidUrl":url})
     }
+}
+
+
+function createSafeFileName(url) {
+  // Remove protocol and domain from the URL, if present
+  const hostName = new URL(url).hostname;
+  const path = url.replace(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n]+)/, '');
+
+  // Replace unsafe characters with _, and replace = with -
+  const safeName = path.replace(/[\/\\:*?"<>|]/g, '_').replace(/=/g, '-');
+
+  return hostName+"-"+safeName;
 }
 
 const getscrap_old =  async(req,res,next) =>{
@@ -318,6 +332,7 @@ const isValidHttpUrl = (string)=>{
 
 const geturl = async (req, res, next) => {
   const url = req.params.id;
+  const safeFileName = createSafeFileName(url);
   if (isValidHttpUrl(url)) {
     let domain = (new URL(url)).hostname;
 
@@ -330,7 +345,7 @@ const geturl = async (req, res, next) => {
 
       const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
       const page = await browser.newPage();
-      await page.setUserAgent('Chrome/91.0.4472.124 Safari/537.36')
+      await page.setUserAgent('Chrome/91.0.4472.124')
       await page.setExtraHTTPHeaders({
         'Accept-Language': 'en-US',
       });
@@ -376,14 +391,14 @@ const geturl = async (req, res, next) => {
       const date = cookieManager.customDateFormater();
       const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
       const htmlContent = await page.content();
-      const htmlPath = `${timestamp}-${domain.replaceAll(".", "_")}.html`;
+      const htmlPath = `${timestamp}-${safeFileName}.html`;
       fs.writeFileSync(htmlPath, htmlContent);
   
       // Save PDF
       
 
       //Save JSON of body text
-      const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
+      const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
       //const innerTextData = await page.evaluate(() => document.body.innerText);
       const htmlString = await page.evaluate(() => document.body.innerHTML);
       const innerTextData =  await extractReadableData(htmlString)
@@ -396,7 +411,7 @@ const geturl = async (req, res, next) => {
         myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath })
   
       ]);
-      const pdfPath = await trySavingPdf(timestamp,domain,page);
+      const pdfPath = await trySavingPdf(timestamp,safeFileName,page);
       await browser.close();
       res.send({htmlPath,pdfPath,innerTextJsonPath})
 
@@ -417,13 +432,14 @@ const geturl = async (req, res, next) => {
 const comparescraps = async (req, res, next) => {
   const urlToScreen = req.params.url;
   const oldScreen =  req.params.picUrl;
+  const safeFileName = createSafeFileName(urlToScreen);
   if (isValidHttpUrl(urlToScreen)) {
 
     try{
     let domain = (new URL(urlToScreen)).hostname;
     const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
     const page = await browser.newPage();
-    await page.setUserAgent('Chrome/91.0.4472.124 Safari/537.36');
+    await page.setUserAgent('Chrome/91.0.4472.124');
     await page.setExtraHTTPHeaders({
     'Accept-Language': 'en-US',
     });
@@ -475,12 +491,12 @@ const comparescraps = async (req, res, next) => {
       const date = cookieManager.customDateFormater();
       const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
       const htmlContent = await page.content();
-      const htmlPath = `${timestamp}-${domain.replaceAll(".", "_")}.html`;
+      const htmlPath = `${timestamp}-${safeFileName}.html`;
       fs.writeFileSync(htmlPath, htmlContent);
       await myBucket.upload(htmlPath, { destination: htmlPath });
 
       //
-      const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
+      const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
       //const innerTextData = await page.evaluate(() => document.body.innerText);
       const htmlString = await page.evaluate(() => document.body.innerHTML);
       const innerTextData =  await extractReadableData(htmlString)
@@ -489,7 +505,7 @@ const comparescraps = async (req, res, next) => {
   
 
       // Save and Upload PDF
-      const pdfPath = await trySavingPdf(timestamp,domain,page);
+      const pdfPath = await trySavingPdf(timestamp,safeFileName,page);
       await browser.close();
       res.send({ message: "HTML and PDF saved", pdfUrl: `.../${pdfPath}`, htmlUrl: `.../${htmlPath}`,jsonPath:`.../${innerTextJsonPath}`,data:{comparisonResult:[{"type":"No Difference"}]} });
       return;
@@ -499,12 +515,12 @@ const comparescraps = async (req, res, next) => {
           const date = cookieManager.customDateFormater();
           const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
           const htmlContent = await page.content();
-          const htmlPath = `${timestamp}-${domain.replaceAll(".", "_")}.html`;
+          const htmlPath = `${timestamp}-${safeFileName}.html`;
           fs.writeFileSync(htmlPath, htmlContent);
           await myBucket.upload(htmlPath, { destination: htmlPath });
 
           //
-          const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
+          const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
           //const innerTextData = await page.evaluate(() => document.body.innerText);
           const htmlString2 = await page.evaluate(() => document.body.innerHTML);
           const innerTextData =  await extractReadableData(htmlString2)
@@ -513,7 +529,7 @@ const comparescraps = async (req, res, next) => {
       
     
           // Save and Upload PDF
-          const pdfPath = await trySavingPdf(timestamp,domain,page);
+          const pdfPath = await trySavingPdf(timestamp,safeFileName,page);
         
       
         
