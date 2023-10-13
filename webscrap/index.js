@@ -120,10 +120,10 @@ const getoldscraps = async (req,res,next)=>{
       }
 
       if(matchingFiles.length>=1){
-        res.send({domain,matchingFiles})
+        res.send({safeFileName,matchingFiles})
       }else{
         const returnVal = {"no":"files"}
-        res.send({domain,returnVal})
+        res.send({safeFileName,returnVal})
       }
     }else{
       res.send({"notValidUrl":url})
@@ -953,7 +953,7 @@ const generateEmailHtml = (data, domain) => {
 
 const trySavingPdf =async(timestamp,domain,page)=>{
           try{
-          const pdfPath = `${timestamp}-${domain.replaceAll(".", "_")}.pdf`;
+          const pdfPath = `${timestamp}-${domain}.pdf`;
           await page.pdf({ path: pdfPath});
           await myBucket.upload(pdfPath, { destination: pdfPath });
           return pdfPath
