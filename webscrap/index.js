@@ -402,7 +402,7 @@ const geturl = async (req, res, next) => {
       //const innerTextData = await page.evaluate(() => document.body.innerText);
       const htmlString = await page.evaluate(() => document.body.innerHTML);
       const innerTextData =  await extractReadableData(htmlString)
-      await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData }));
+      await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData, htmlData:htmlString }));
   
       // Upload HTML and PDF to Google Cloud Bucket
       await Promise.all([
@@ -500,7 +500,7 @@ const comparescraps = async (req, res, next) => {
       //const innerTextData = await page.evaluate(() => document.body.innerText);
       const htmlString = await page.evaluate(() => document.body.innerHTML);
       const innerTextData =  await extractReadableData(htmlString)
-      await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData }));
+      await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData ,htmlData:htmlString }));
       await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
   
 
@@ -524,7 +524,7 @@ const comparescraps = async (req, res, next) => {
           //const innerTextData = await page.evaluate(() => document.body.innerText);
           const htmlString2 = await page.evaluate(() => document.body.innerHTML);
           const innerTextData =  await extractReadableData(htmlString2)
-          await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData }));
+          await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData ,htmlData:htmlString2}));
           await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
       
     
