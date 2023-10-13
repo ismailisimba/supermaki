@@ -7,6 +7,9 @@ const fsp = require('fs.promises');
 const PNG = require('pngjs').PNG;
 const sharp = require('sharp');
 
+const jsdom = require("jsdom");
+const { JSDOM } = jsdom;
+
 const {BigQuery} = require('@google-cloud/bigquery');
 const cookieMan = require("../cookieMan");
 const cookieManager = new cookieMan();
@@ -62,7 +65,7 @@ const geturl_old = async (req,res,next)=>{
     const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
 
     await page.b.goto(url,{waitUntil:"networkidle2"});
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    //await new Promise(resolve => setTimeout(resolve, 3000));
     await page.b.evaluate(_ => {
       function xcc_contains(selector, text) {
           var elements = document.querySelectorAll(selector);
@@ -178,7 +181,7 @@ const comparescraps_old = async(req,res,next)=>{
   
     // Launch Puppeteer and navigate to the URL
     await page.goto(urlToScreen,{waitUntil:"networkidle2"});
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    //await new Promise(resolve => setTimeout(resolve, 3000));
 
     await page.evaluate(_ => {
       function xcc_contains(selector, text) {
@@ -327,10 +330,14 @@ const geturl = async (req, res, next) => {
 
       const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
       const page = await browser.newPage();
+      await page.setUserAgent('Chrome/91.0.4472.124 Safari/537.36')
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'en-US',
+      });
       
 
       await page.goto(url, { waitUntil: "networkidle2" });
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      //await new Promise(resolve => setTimeout(resolve, 3000));
 
       await page.evaluate(_ => {
         function xcc_contains(selector, text) {
@@ -345,16 +352,14 @@ const geturl = async (req, res, next) => {
       });
 
       // Add these lines to set the user agent and locale
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-  await page.setExtraHTTPHeaders({
-    'Accept-Language': 'en-US',
-  });
+      //await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+   
 
   // Add this line to disable animations
   await page.evaluate(() => {
     const instantTransitionCssRule = '* { transition: none!important; animation: none!important; }';
     const styleSheet = document.createElement('style');
-    styleSheet.type = 'text/css';
+    styleSheet.setAttribute("type","text/css");
     styleSheet.innerText = instantTransitionCssRule;
     document.head.appendChild(styleSheet);
   });
@@ -379,7 +384,9 @@ const geturl = async (req, res, next) => {
 
       //Save JSON of body text
       const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
-      const innerTextData = await page.evaluate(() => document.body.innerText);
+      //const innerTextData = await page.evaluate(() => document.body.innerText);
+      const htmlString = await page.evaluate(() => document.body.innerHTML);
+      const innerTextData =  await extractReadableData(htmlString)
       await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData }));
   
       // Upload HTML and PDF to Google Cloud Bucket
@@ -416,10 +423,14 @@ const comparescraps = async (req, res, next) => {
     let domain = (new URL(urlToScreen)).hostname;
     const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
     const page = await browser.newPage();
+    await page.setUserAgent('Chrome/91.0.4472.124 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+    'Accept-Language': 'en-US',
+    });
         
         // Cookie logic
         await page.goto(urlToScreen, { waitUntil: "networkidle2" });
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        //await new Promise(resolve => setTimeout(resolve, 3000));
 
         await page.evaluate(_ => {
           function xcc_contains(selector, text) {
@@ -434,16 +445,14 @@ const comparescraps = async (req, res, next) => {
         });
 
         // Add these lines to set the user agent and locale
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-        await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US',
-        });
+        //await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+       
 
         // Add this line to disable animations
         await page.evaluate(() => {
         const instantTransitionCssRule = '* { transition: none!important; animation: none!important; }';
         const styleSheet = document.createElement('style');
-        styleSheet.type = 'text/css';
+        styleSheet.setAttribute("type","text/css");
         styleSheet.innerText = instantTransitionCssRule;
         document.head.appendChild(styleSheet);
         });
@@ -472,7 +481,9 @@ const comparescraps = async (req, res, next) => {
 
       //
       const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
-      const innerTextData = await page.evaluate(() => document.body.innerText);
+      //const innerTextData = await page.evaluate(() => document.body.innerText);
+      const htmlString = await page.evaluate(() => document.body.innerHTML);
+      const innerTextData =  await extractReadableData(htmlString)
       await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData }));
       await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
   
@@ -494,7 +505,9 @@ const comparescraps = async (req, res, next) => {
 
           //
           const innerTextJsonPath = `${timestamp}-${domain.replaceAll(".", "_")}-innerText.json`;
-          const innerTextData = await page.evaluate(() => document.body.innerText);
+          //const innerTextData = await page.evaluate(() => document.body.innerText);
+          const htmlString2 = await page.evaluate(() => document.body.innerHTML);
+          const innerTextData =  await extractReadableData(htmlString2)
           await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData }));
           await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
       
@@ -514,10 +527,12 @@ const comparescraps = async (req, res, next) => {
           //console.log("shitShow1",htmlComp)
       
             const oldInnerTextData = await oldInnerTextJsonFile.download().then(data => JSON.parse(data[0])).catch(e => console.log(e));
-          const newInnerTextData = await page.evaluate(() => document.body.innerText);
+          const htmlString = await page.evaluate(() => document.body.innerHTML);
+          const newInnerTextData =  await extractReadableData(htmlString);
           const resulty = findDifference(newInnerTextData, oldInnerTextData.innerText);
           const chanceOfDiff = typeof resulty!="string"?parseFloat(resulty.string1DiffPercentage):0;
           if (resulty && resulty.string1Diff && chanceOfDiff>5) {
+            console.log("resulty",resulty)
               //const htmlComp = await compareHtmlFromBucket(urlToScreen,`${oldScreen.replace('-innerText.json','.html')}`);
               //console.log("shitShow1",htmlComp)
            if(true){
@@ -563,7 +578,7 @@ const compareHtmlFromBucket = async (url,filename) => {
 
   // Navigate to URL and get its HTML content
   await page.goto(url, { waitUntil: 'networkidle2' });
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  //await new Promise(resolve => setTimeout(resolve, 3000));
 
   const newHtmlContent = await page.content();
 
@@ -849,20 +864,25 @@ function findDifference(str1, str2) {
 
   let similarityPercentage = 0;
   let string1DiffPercentage = 0;
+  let string2DiffPercentage = 0;
 
   const actualWords1 = words1.filter(word => word.trim() !== '');
   if (actualWords1.length > 0) {
     similarityPercentage = (similarities.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
     string1DiffPercentage = (diff1.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
+    string2DiffPercentage = (diff2.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
   }
 
   if (diff1.length > 0 || diff2.length > 0 || similarities.length > 0) {
     return {
       string1Diff: diff1.join(""),
+      string1DiffLength: diff1.length,
       string2Diff: diff2.join(""),
+      string2DiffLength: diff2.length,
       similarities: similarities.join(""),
       similarityPercentage: similarityPercentage.toFixed(2),
       string1DiffPercentage: string1DiffPercentage.toFixed(2),
+      string2DiffPercentage: string2DiffPercentage.toFixed(2),
     };
   } else {
     return '';
@@ -926,6 +946,54 @@ const trySavingPdf =async(timestamp,domain,page)=>{
             return e.message;
           }
 }
+
+
+
+async function extractReadableData(htmlString) {
+    const dom = new JSDOM(htmlString);
+    const document = dom.window.document;
+    let resultText = '';
+
+    function processNode(node) {
+        if (node.nodeType === 1) {  // Element node
+            const tagName = node.tagName.toLowerCase();
+            if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'].includes(tagName)) {
+                resultText += node.textContent + '\n';
+            } else if (tagName === 'table') {
+                const rows = node.rows;
+                for (let i = 0; i < rows.length; i++) {
+                    const cols = rows[i].cells;
+                    for (let j = 0; j < cols.length; j++) {
+                        resultText += cols[j].textContent + '\t';
+                    }
+                    resultText += '\n';
+                }
+            } else if (tagName === 'ul' || tagName === 'ol') {
+                const prevSibling = node.previousElementSibling;
+                const nextSibling = node.nextElementSibling;
+                if (prevSibling && prevSibling.tagName.toLowerCase() === 'p' ||
+                    nextSibling && nextSibling.tagName.toLowerCase() === 'p') {
+                    const items = node.querySelectorAll('li');
+                    items.forEach(item => {
+                        resultText += '- ' + item.textContent + '\n';
+                    });
+                }
+            }
+            // Recur for each child node
+            for (let child of node.childNodes) {
+                processNode(child);
+            }
+        }
+    }
+
+    processNode(document.body);
+    return resultText;
+}
+
+// Usage:
+// Assume htmlString contains the innerHTML of the body of the webpage
+// const htmlString = "<body>...</body>";
+// extractReadableData(htmlString).then(text => console.log(text));
 
 
 
