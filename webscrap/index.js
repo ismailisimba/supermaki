@@ -399,9 +399,10 @@ const geturl = async (req, res, next) => {
 
       //Save JSON of body text
       const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-      //const innerTextData = await page.evaluate(() => document.body.innerText);
-      const htmlString = await page.evaluate(() => document.body.innerHTML);
-      const innerTextData =  await extractReadableData(htmlString)
+      const innerTextString = await page.evaluate(() => document.body.innerText);
+      const htmlString1 = await page.evaluate(() => document.body.innerHTML);
+      //const innerTextData =  await extractReadableData(htmlString)
+      const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
       await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData, htmlData:htmlString }));
   
       // Upload HTML and PDF to Google Cloud Bucket
@@ -496,10 +497,20 @@ const comparescraps = async (req, res, next) => {
       await myBucket.upload(htmlPath, { destination: htmlPath });
 
       //
-      const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
+      //const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
       //const innerTextData = await page.evaluate(() => document.body.innerText);
-      const htmlString = await page.evaluate(() => document.body.innerHTML);
-      const innerTextData =  await extractReadableData(htmlString)
+      //const htmlString = await page.evaluate(() => document.body.innerHTML);
+      //const innerTextData =  await extractReadableData(htmlString)
+
+      const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
+      const innerTextString = await page.evaluate(() => document.body.innerText);
+      const htmlString1 = await page.evaluate(() => document.body.innerHTML);
+      //const innerTextData =  await extractReadableData(htmlString)
+      const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
+
+
+
+
       await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData ,htmlData:htmlString }));
       await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
   
@@ -520,11 +531,18 @@ const comparescraps = async (req, res, next) => {
           await myBucket.upload(htmlPath, { destination: htmlPath });
 
           //
-          const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
+          //const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
           //const innerTextData = await page.evaluate(() => document.body.innerText);
-          const htmlString2 = await page.evaluate(() => document.body.innerHTML);
-          const innerTextData =  await extractReadableData(htmlString2)
-          await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData ,htmlData:htmlString2}));
+          //const htmlString2 = await page.evaluate(() => document.body.innerHTML);
+          //const innerTextData =  await extractReadableData(htmlString2)
+
+          const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
+          const innerTextString = await page.evaluate(() => document.body.innerText);
+          const htmlString1 = await page.evaluate(() => document.body.innerHTML);
+          //const innerTextData =  await extractReadableData(htmlString)
+          const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
+
+          await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData ,htmlData:htmlString}));
           await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
       
     
@@ -543,12 +561,12 @@ const comparescraps = async (req, res, next) => {
           //console.log("shitShow1",htmlComp)
       
             const oldInnerTextData = await oldInnerTextJsonFile.download().then(data => JSON.parse(data[0])).catch(e => console.log(e));
-          const htmlString = await page.evaluate(() => document.body.innerHTML);
-          const newInnerTextData =  await extractReadableData(htmlString);
-          const resulty = findDifference(newInnerTextData, oldInnerTextData.innerText);
+          //const htmlString = await page.evaluate(() => document.body.innerHTML);
+          //const newInnerTextData =  await extractReadableData(htmlString);
+          const resulty = findDifference(innerTextData, oldInnerTextData.innerText);
           const chanceOfDiff = typeof resulty!="string"?parseFloat(resulty.string1DiffPercentage):0;
           if (resulty && resulty.string1Diff && chanceOfDiff>5) {
-            console.log("resulty",resulty)
+            //console.log("resulty",resulty)
               //const htmlComp = await compareHtmlFromBucket(urlToScreen,`${oldScreen.replace('-innerText.json','.html')}`);
               //console.log("shitShow1",htmlComp)
            if(true){
@@ -567,8 +585,9 @@ const comparescraps = async (req, res, next) => {
           comparisonResult.push({ type: 'No Difference' });
         }
         await browser.close();
-        const data = { pdfPath, htmlPath, oldScreen, innerTextJsonPath,comparisonResult };
+        const data = { pdfPath, htmlPath, oldScreen, innerTextJsonPath,comparisonResult,htmlString };
         const someHtml = generateEmailHtml(data,urlToScreen);
+        data.htmlString = undefined;
         res.send({data,someHtml});
       
 
@@ -912,7 +931,7 @@ function findDifference(str1, str2) {
 
 const generateEmailHtml = (data, domain) => {
   // Extract necessary data
-  const { pdfPath, htmlPath, oldScreen, comparisonResult } = data;
+  const { pdfPath, htmlPath, oldScreen, comparisonResult, htmlString } = data;
 
   // Check if comparisonResult exists and has content
   if (!comparisonResult || comparisonResult.length === 0 || !comparisonResult[0].string1Diff) {
@@ -931,6 +950,8 @@ const generateEmailHtml = (data, domain) => {
 
   // Extract differences and similarities
   const { string1Diff } = comparisonResult[0];
+  const newHTMl = findMatchingElements(string1Diff,htmlString);
+  console.log("newHt",newHTMl)
 
   // Build the email HTML content
   const emailHtml = `
@@ -942,12 +963,44 @@ const generateEmailHtml = (data, domain) => {
 
 
         <h3 style="font-family: Arial, sans-serif; font-color:red">New Text Detected</h3>
-        <p style="font-family: 'Arial', Courier, monospace; font-size:12px">${string1Diff}</p>
+        <p style="font-family: 'Arial', Courier, monospace; font-size:12px">${newHTMl}</p>
       </div>
   `;
 
   return emailHtml;
 };
+
+
+function findMatchingElements(plainText, htmlString) {
+  const dom = new JSDOM(htmlString);
+  const document = dom.window.document;
+
+  // Split the plain text string by two new lines to get individual text parts
+  const textParts = plainText.split('\n\n');
+
+  // Create a container to hold the matching elements
+  const container = document.createElement('div');
+
+  // Iterate through each text part and find matching elements
+  textParts.forEach(textPart => {
+    // Trim the text part to ensure accurate matching
+    const trimmedTextPart = textPart.trim();
+
+    // Query the document for elements containing the text part
+    const matchingElements = Array.from(document.querySelectorAll(`*`)).filter(e=>e.innerText===trimmedTextPart);
+
+    // Append each matching element to the container
+    matchingElements.forEach(element => {
+      container.appendChild(element.cloneNode(true));
+    });
+  });
+
+  // Serialize the container to get the new HTML string
+  const newHtmlString = container.outerHTML;
+  return newHtmlString;
+}
+
+
 
 
 
@@ -965,7 +1018,7 @@ const trySavingPdf =async(timestamp,domain,page)=>{
 
 
 
-async function extractReadableData(htmlString) {
+/*async function extractReadableData(htmlString) {
     const dom = new JSDOM(htmlString);
     const document = dom.window.document;
     let resultText = '';
@@ -1004,7 +1057,7 @@ async function extractReadableData(htmlString) {
 
     processNode(document.body);
     return resultText;
-}
+}*/
 
 // Usage:
 // Assume htmlString contains the innerHTML of the body of the webpage
@@ -1012,10 +1065,94 @@ async function extractReadableData(htmlString) {
 // extractReadableData(htmlString).then(text => console.log(text));
 
 
+async function extractInformation(htmlString, innerTextString) {
+  const dom = new JSDOM(htmlString);
+  const document = dom.window.document;
+  const extractedHtmlElements = [];
+  const innerN = innerTextString;
+
+  document.querySelectorAll("img, video").forEach((e)=>{e.remove();})
+  
+  // Function to handle table extraction
+  function handleTable(table) {
+    const tableText = table.textContent;
+    if (innerTextString.includes(tableText)) {
+      extractedHtmlElements.push(table.outerHTML);
+      innerTextString = innerTextString.replace(tableText, '');
+    }
+  }
+
+  // Function to handle generic element extraction (headings, paragraphs, lists)
+  function handleElement(element) {
+    const elementText = element.textContent;
+    if (innerTextString.includes(elementText)) {
+      extractedHtmlElements.push(element.outerHTML);
+      innerTextString = innerTextString.replace(elementText, '');
+    }
+  }
+
+  // Iterate through all headings, paragraphs, lists, and tables
+  const elements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, p ul,p ol, table');
+  elements.forEach((ele)=>{
+    ele.removeAttribute('style');  // Remove inline styles
+    ele.removeAttribute('class'); 
+    let trimmedInnerHTML = ele.innerHTML.trim();
+    ele.innerHTML = trimmedInnerHTML;
+    updateFontSize(ele, ele.tagName.toLowerCase())
+  })
 
 
 
+  for (const element of elements) {
+    if (element.tagName.toLowerCase() === 'table') {
+      handleTable(element);
+    } else {
+      handleElement(element);
+    }
+  }
 
+
+
+  return {
+    innerTextData: innerN,
+    htmlString: extractedHtmlElements.join(''),
+  };
+}
+
+
+function updateFontSize(element, query) {
+  let fontSize;
+
+  switch (query) {
+      case "h1":
+          fontSize = "26px";
+          break;
+      case "h2":
+      case "h3":
+          fontSize = "22px";
+          break;
+      case "h4":
+          fontSize = "18px";
+          break;
+      case "h5":
+          fontSize = "16px";
+          break;
+      case "h6":
+          fontSize = "13px";
+          break;
+      case "p":
+      case "p ul":
+      case "p ol":
+          fontSize = "11px";
+          break;
+      default:
+          console.error("Unknown query:", query);
+          return;
+  }
+  
+  element.style.fontSize = fontSize;
+
+}
 
 
 
