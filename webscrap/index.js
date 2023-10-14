@@ -951,7 +951,6 @@ const generateEmailHtml = (data, domain) => {
   // Extract differences and similarities
   const { string1Diff } = comparisonResult[0];
   const newHTMl = findMatchingElements(string1Diff,htmlString);
-  console.log("newHt",newHTMl)
 
   // Build the email HTML content
   const emailHtml = `
@@ -977,18 +976,20 @@ function findMatchingElements(plainText, htmlString) {
 
   // Split the plain text string by two new lines to get individual text parts
   const textParts = plainText.split('\n\n');
+  const htmlParts = document.querySelectorAll('a');
 
   // Create a container to hold the matching elements
   const container = document.createElement('div');
-
+  const cont2 = document.createElement("div");
+  //console.log("txParts1",htmlString)
   // Iterate through each text part and find matching elements
   textParts.forEach(textPart => {
     // Trim the text part to ensure accurate matching
     const trimmedTextPart = textPart.trim();
 
     // Query the document for elements containing the text part
-    const matchingElements = Array.from(document.querySelectorAll(`*`)).filter(e=>e.innerText===trimmedTextPart);
-
+    
+    const matchingElements = Array.from(document.querySelectorAll(`*`)).filter(e=>e.textContent===trimmedTextPart);
     // Append each matching element to the container
     matchingElements.forEach(element => {
       container.appendChild(element.cloneNode(true));
