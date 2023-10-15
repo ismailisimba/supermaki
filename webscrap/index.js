@@ -104,8 +104,6 @@ const getoldscraps = async (req,res,next)=>{
     const url = req.params.id;
     const safeFileName = createSafeFileName(url);
     if(isValidHttpUrl(url)){
-    let domain = (new URL(url));
-    domain = domain.hostname;
     //const searchTerm = domain.replaceAll(".","_")
     const searchTerm = safeFileName;
     const matchingFiles = [];
@@ -114,8 +112,16 @@ const getoldscraps = async (req,res,next)=>{
 
     for (const file of files) {
         // Check if the file's name contains the search term
-        if (file.name.includes(searchTerm)) {
+        const [ineArr, twArr] =file.name.split("-",1);
+        const nwstr = file.name.substring(ineArr.length + 1)
+        const safeFileNameComp = nwstr.split(".")[0].replace("-innerText","");
+        if (safeFileNameComp===searchTerm) {
+          //console.log("der",safeFileNameComp);
+          //console.log("ss",searchTerm)
           matchingFiles.push("https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/"+file.name);
+        }else{
+        
+          //console.log("fytu",extractUrlPart("https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/"+file.name));
         }
       }
 
@@ -129,6 +135,17 @@ const getoldscraps = async (req,res,next)=>{
       res.send({"notValidUrl":url})
     }
 }
+
+function extractUrlAndPathPart(fileName) {
+  const regex = /(\d+-www_[^-]+(?:-[^.]+)?)/;
+  const match = fileName.match(regex);
+  if (match && match[1]) {
+      return match[1];
+  } else {
+      throw new Error('URL and path part extraction failed');
+  }
+}
+
 
 
 function createSafeFileName(url) {
@@ -1093,7 +1110,7 @@ async function extractInformation(htmlString, innerTextString) {
   }
 
   // Iterate through all headings, paragraphs, lists, and tables
-  const elements = document.querySelectorAll('h1, h2, h3, h4, h5, h6, p, p ul,p ol, table');
+  const elements = document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, p ul, p ol");
   elements.forEach((ele)=>{
     ele.removeAttribute('style');  // Remove inline styles
     ele.removeAttribute('class'); 
@@ -1126,17 +1143,17 @@ function updateFontSize(element, query) {
 
   switch (query) {
       case "h1":
-          fontSize = "26px";
+          fontSize = "18px";
           break;
       case "h2":
       case "h3":
-          fontSize = "22px";
+          fontSize = "16px";
           break;
       case "h4":
-          fontSize = "18px";
+          fontSize = "14px";
           break;
       case "h5":
-          fontSize = "16px";
+          fontSize = "13px";
           break;
       case "h6":
           fontSize = "13px";
@@ -1144,7 +1161,7 @@ function updateFontSize(element, query) {
       case "p":
       case "p ul":
       case "p ol":
-          fontSize = "11px";
+          fontSize = "12px";
           break;
       default:
           console.error("Unknown query:", query);
