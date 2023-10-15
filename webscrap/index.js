@@ -114,7 +114,9 @@ const getoldscraps = async (req,res,next)=>{
         // Check if the file's name contains the search term
         const [ineArr, twArr] =file.name.split("-",1);
         const nwstr = file.name.substring(ineArr.length + 1)
-        const safeFileNameComp = nwstr.split(".")[0].replace("-innerText","");
+        const index = nwstr.lastIndexOf(".");
+        const firstPart = nwstr.substring(0, index);
+        const safeFileNameComp = firstPart.replace("-innerText","");
         if (safeFileNameComp===searchTerm) {
           //console.log("der",safeFileNameComp);
           //console.log("ss",searchTerm)
