@@ -418,7 +418,7 @@ const geturl = async (req, res, next) => {
 
       //Save JSON of body text
       const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-      const innerTextString = await page.evaluate(() => document.body.innerText);
+      const innerTextString = await page.evaluate(() => document.body.textContent);
       const htmlString1 = await page.evaluate(() => document.body.innerHTML);
       //const innerTextData =  await extractReadableData(htmlString)
       const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
@@ -522,7 +522,7 @@ const comparescraps = async (req, res, next) => {
       //const innerTextData =  await extractReadableData(htmlString)
 
       const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-      const innerTextString = await page.evaluate(() => document.body.innerText);
+      const innerTextString = await page.evaluate(() => document.body.textContent);
       const htmlString1 = await page.evaluate(() => document.body.innerHTML);
       //const innerTextData =  await extractReadableData(htmlString)
       const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
@@ -556,10 +556,13 @@ const comparescraps = async (req, res, next) => {
           //const innerTextData =  await extractReadableData(htmlString2)
 
           const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-          const innerTextString = await page.evaluate(() => document.body.innerText);
+          const innerTextString = await page.evaluate(() => document.body.textContent);
           const htmlString1 = await page.evaluate(() => document.body.innerHTML);
           //const innerTextData =  await extractReadableData(htmlString)
+          //const xytu = convertHTMLToText(htmlString1);
           const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
+          //const innerTextData = xytu;
+          //const htmlString = xytu;
 
           await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData ,htmlData:htmlString}));
           await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
@@ -604,8 +607,9 @@ const comparescraps = async (req, res, next) => {
           comparisonResult.push({ type: 'No Difference' });
         }
         await browser.close();
-        const data = { pdfPath, htmlPath, oldScreen, innerTextJsonPath,comparisonResult,htmlString };
-        const someHtml = generateEmailHtml(data,urlToScreen);
+        const ogHtml = htmlString;
+        const data = { pdfPath, htmlPath, oldScreen, innerTextJsonPath,comparisonResult,ogHtml };
+        const someHtml = await generateEmailHtml(data,urlToScreen);
         data.htmlString = undefined;
         res.send({data,someHtml});
       
@@ -624,6 +628,18 @@ const comparescraps = async (req, res, next) => {
 };
 
 
+function convertHTMLToText(template) {
+    // Use image alt text
+    template = template.replace(/<img .*?alt=["']?([^"']*)["']?.*?>/gi, "$1");
+    // Convert links to something useful
+    template = template.replace(/<a .*?href=["']?([^"']*)["']?.*?>(.*?)<\/a>/gi, "$2 [$1]");
+    // Let's try to keep vertical whitespace intact
+    template = template.replace(/<(\/p|\/div|\/h\d|br)\w?\/?>/gi, "\n");
+    // Remove the rest of the tags
+    template = template.replace(/<[A-Za-z\/][^<>]*>/gi, "");
+
+    return template;
+}
 
 const compareHtmlFromBucket = async (url,filename) => {
   // Initialize browser and page
@@ -948,9 +964,9 @@ function findDifference(str1, str2) {
 
 
 
-const generateEmailHtml = (data, domain) => {
+const generateEmailHtml = async(data, domain) => {
   // Extract necessary data
-  const { pdfPath, htmlPath, oldScreen, comparisonResult, htmlString } = data;
+  const { pdfPath, htmlPath, oldScreen, comparisonResult,ogHtml } = data;
 
   // Check if comparisonResult exists and has content
   if (!comparisonResult || comparisonResult.length === 0 || !comparisonResult[0].string1Diff) {
@@ -969,8 +985,9 @@ const generateEmailHtml = (data, domain) => {
 
   // Extract differences and similarities
   const { string1Diff } = comparisonResult[0];
-  const newHTMl = convertTextToHTML(string1Diff,htmlString);
-
+  //const newHTMl = convertTextToHTML(string1Diff,htmlString);
+  const {htmlString} = await extractInformation(ogHtml,string1Diff);
+  
   // Build the email HTML content
   const emailHtml = `
       <div style="max-width: 600px; margin: auto;">
@@ -981,7 +998,7 @@ const generateEmailHtml = (data, domain) => {
 
 
         <h3 style="font-family: Arial, sans-serif; font-color:red">New Text Detected</h3>
-        <p style="font-family: 'Arial', Courier, monospace; font-size:12px">'${string1Diff}'</p>
+        <p style="font-family: 'Arial', Courier, monospace; font-size:12px">'${htmlString}'</p>
       </div>
   `;
 
@@ -1059,10 +1076,7 @@ function convertTextToHTML(text, originalHTML) {
 }
 
 
-
-
 function findURLForText(text, originalHTML) {
-  console.log("ss",text);
   // Parse the original HTML using JSDOM
   const { JSDOM } = require("jsdom");
   const dom = new JSDOM(originalHTML);
@@ -1148,7 +1162,7 @@ async function extractInformation(htmlString, innerTextString) {
   const extractedHtmlElements = [];
   const innerN = innerTextString;
 
-  document.querySelectorAll("img, video").forEach((e)=>{e.remove();})
+  document.querySelectorAll("img, video, style, script, input, button").forEach((e)=>{e.remove();})
   
   // Function to handle table extraction
   function handleTable(table) {
@@ -1167,9 +1181,8 @@ async function extractInformation(htmlString, innerTextString) {
       innerTextString = innerTextString.replace(elementText, '');
     }
   }
-
   // Iterate through all headings, paragraphs, lists, and tables
-  const elements = document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, p ul, p ol");
+  const elements = document.querySelectorAll(" h1, h2, h3, h4, h5, h6, p, p ul, p ol, table ");
   elements.forEach((ele)=>{
     ele.removeAttribute('style');  // Remove inline styles
     ele.removeAttribute('class'); 
