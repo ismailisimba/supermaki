@@ -969,7 +969,7 @@ const generateEmailHtml = (data, domain) => {
 
   // Extract differences and similarities
   const { string1Diff } = comparisonResult[0];
-  const newHTMl = findMatchingElements(string1Diff,htmlString);
+  const newHTMl = convertTextToHTML(string1Diff,htmlString);
 
   // Build the email HTML content
   const emailHtml = `
@@ -981,7 +981,7 @@ const generateEmailHtml = (data, domain) => {
 
 
         <h3 style="font-family: Arial, sans-serif; font-color:red">New Text Detected</h3>
-        <p style="font-family: 'Arial', Courier, monospace; font-size:12px">${newHTMl}</p>
+        <p style="font-family: 'Arial', Courier, monospace; font-size:12px">'${string1Diff}'</p>
       </div>
   `;
 
@@ -992,7 +992,8 @@ const generateEmailHtml = (data, domain) => {
 function findMatchingElements(plainText, htmlString) {
   const dom = new JSDOM(htmlString);
   const document = dom.window.document;
-
+  console.log("htmlString",htmlString)
+  console.log("plainText",plainText)
   // Split the plain text string by two new lines to get individual text parts
   const textParts = plainText.split('\n\n');
   const htmlParts = document.querySelectorAll('a');
@@ -1021,6 +1022,62 @@ function findMatchingElements(plainText, htmlString) {
 }
 
 
+function convertTextToHTML(text, originalHTML) {
+  // Split the text into paragraphs by multiple newlines first, then by single newlines
+  const paragraphs = text.split(/\n{2,}/).flatMap(paragraph => paragraph.split('\n'));
+
+  // Initialize an array to hold HTML elements
+  let htmlElements = [];
+
+  paragraphs.forEach(paragraph => {
+    if (paragraph.trim() === '') {
+      // Skip empty lines
+      return;
+    }
+
+    // Check if the paragraph is short
+    if (paragraph.length < 100) {
+      // Find URLs in the original HTML
+      const urls = findURLForText(paragraph, originalHTML);
+      // If URLs were found, create multiple anchor elements wrapped in <strong>
+      if (urls.length > 0) {
+        urls.forEach(url => {
+          htmlElements.push(`<strong><a href="${url}">${paragraph}</a></strong>`);
+        });
+      } else {
+        // If no URLs found, just bold the paragraph without a link
+        htmlElements.push(`<strong>${paragraph}</strong>`);
+      }
+    } else {
+      // Wrap longer paragraphs in <p> tags
+      htmlElements.push(`<p>${paragraph}</p>`);
+    }
+  });
+
+  // Join all HTML elements into a single string, wrapped in a div
+  return `<div>${htmlElements.join('')}</div>`;
+}
+
+
+
+
+function findURLForText(text, originalHTML) {
+  console.log("ss",text);
+  // Parse the original HTML using JSDOM
+  const { JSDOM } = require("jsdom");
+  const dom = new JSDOM(originalHTML);
+  const doc = dom.window.document;
+
+  // Use querySelectorAll to find all anchor tags that contain the exact text
+  const anchors = [...doc.querySelectorAll('a')];
+
+  // Filter anchors with the exact text and map to their href attributes
+  const urls = anchors.filter(anchor => anchor.textContent.trim() === text)
+                     .map(anchor => anchor.getAttribute('href'));
+
+  // Return the array of URLs, or an empty array if no matching anchors are found
+  return urls.length > 0 ? urls : ['#'];
+}
 
 
 
