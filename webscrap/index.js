@@ -1161,14 +1161,14 @@ async function extractInformation(htmlString, innerTextString) {
   const document = dom.window.document;
   const extractedHtmlElements = [];
   const innerN = innerTextString;
-
-  document.querySelectorAll("img, video, style, script, input, button").forEach((e)=>{e.remove();})
+  
+  document.querySelectorAll("img, video, style, script, input, button, .dbg-query, #privacy_overview, #strict-necessary-cookies, .moove-gdpr-strict-warning-message, .moove-gdpr-tab-main-content, .moove-gdpr-strict-secondary-warning-message").forEach((e)=>{e.remove();})
   
   // Function to handle table extraction
   function handleTable(table) {
     const tableText = table.textContent;
     if (innerTextString.includes(tableText)) {
-      extractedHtmlElements.push(table.outerHTML);
+      extractedHtmlElements.push(table.textContent);
       innerTextString = innerTextString.replace(tableText, '');
     }
   }
