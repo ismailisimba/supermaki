@@ -418,8 +418,9 @@ const geturl = async (req, res, next) => {
 
       //Save JSON of body text
       const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-      const innerTextString = await page.evaluate(() => document.body.textContent);
+      //const innerTextString = await page.evaluate(() => document.body.textContent);
       const htmlString1 = await page.evaluate(() => document.body.innerHTML);
+      const innerTextString = extractText(htmlString1);
       //const innerTextData =  await extractReadableData(htmlString)
       const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
       await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData, htmlData:htmlString }));
@@ -522,8 +523,9 @@ const comparescraps = async (req, res, next) => {
       //const innerTextData =  await extractReadableData(htmlString)
 
       const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-      const innerTextString = await page.evaluate(() => document.body.textContent);
+      //const innerTextString = await page.evaluate(() => document.body.textContent);
       const htmlString1 = await page.evaluate(() => document.body.innerHTML);
+      const innerTextString = extractText(htmlString1);
       //const innerTextData =  await extractReadableData(htmlString)
       const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
 
@@ -556,8 +558,9 @@ const comparescraps = async (req, res, next) => {
           //const innerTextData =  await extractReadableData(htmlString2)
 
           const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-          const innerTextString = await page.evaluate(() => document.body.textContent);
+          //const innerTextString = await page.evaluate(() => document.body.textContent);
           const htmlString1 = await page.evaluate(() => document.body.innerHTML);
+          const innerTextString = extractText(htmlString1);
           //const innerTextData =  await extractReadableData(htmlString)
           //const xytu = convertHTMLToText(htmlString1);
           const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
@@ -1155,6 +1158,27 @@ const trySavingPdf =async(timestamp,domain,page)=>{
 // const htmlString = "<body>...</body>";
 // extractReadableData(htmlString).then(text => console.log(text));
 
+function extractText(htmlString) {
+  // Parse the HTML string with JSDOM
+  const dom = new JSDOM(htmlString);
+  const document = dom.window.document;
+
+  // Define the tag names to extract text from
+  const tags = ["div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "table"];
+
+  // Collect text from the specified elements
+  let extractedText = "";
+  tags.forEach(tag => {
+    const elements = document.querySelectorAll(tag);
+    elements.forEach(element => {
+      extractedText += element.textContent + "\n"; // Append text with a newline for readability
+    });
+  });
+
+  return extractedText.trim();
+}
+
+
 
 async function extractInformation(htmlString, innerTextString) {
   const dom = new JSDOM(htmlString);
@@ -1182,7 +1206,7 @@ async function extractInformation(htmlString, innerTextString) {
     }
   }
   // Iterate through all headings, paragraphs, lists, and tables
-  const elements = document.querySelectorAll(" h1, h2, h3, h4, h5, h6, p, p ul, p ol, table ");
+  const elements = document.querySelectorAll(" h1, h2, h3, h4, h5, h6, p, p ul, p ol, table");
   elements.forEach((ele)=>{
     ele.removeAttribute('style');  // Remove inline styles
     ele.removeAttribute('class'); 

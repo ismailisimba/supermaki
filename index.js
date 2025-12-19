@@ -4,6 +4,7 @@ const path = require('path');
 const MDBS = require("./mydirtybs");
 const cookieMan = require("./cookieMan");
 const webscrap = require("./webscrap");
+const frenchSchool = require("./frenchSchool");
 const ws = require('ws');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
@@ -14,6 +15,7 @@ const formidable = require('formidable');
 const mydirtybs = new MDBS();
 const cookieManager = new cookieMan();
 const scrapy = new webscrap();
+const frenchschoolClass = new frenchSchool();
 const app = express();
 const port = parseInt(process.env.PORT)|| 8080;
 
@@ -92,12 +94,61 @@ app.post("/alliancepdf1",textParser,(req,res,next)=>{
       }  
   });
 });
-app.get("/getalliancepdf/:id",textParser,scrapy.getalliancepdf);
+app.get("/getalliancepdf/:id",scrapy.getalliancepdf);
 
 app.get("/scrap/:id",textParser,scrapy.geturl);
 app.get("/oldscrap/:id",textParser,scrapy.getoldscraps);
 app.get("/getscrap/:id",textParser,scrapy.getscrap);
 app.get("/comparescrap/:url/:picUrl",textParser,scrapy.comparescraps)
+
+
+
+
+// ROUTE: French School Fee Calculator
+app.post("/french-school-pdf", (req, res, next) => {
+    // IMPORTANT: Do NOT use bodyParser on routes that use formidable
+    const form = new formidable.IncomingForm();
+    
+    form.parse(req, async (err, fields, files) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send("Form parsing error");
+        }
+
+        try {
+            const data = {
+                parentName: Array.isArray(fields.parentName) ? fields.parentName[0] : fields.parentName,
+                address: Array.isArray(fields.address) ? fields.address[0] : fields.address,
+                phone: Array.isArray(fields.phone) ? fields.phone[0] : fields.phone || "",
+                email: Array.isArray(fields.email) ? fields.email[0] : fields.email,
+                existingChildren: parseInt(Array.isArray(fields.existingChildren) ? fields.existingChildren[0] : fields.existingChildren),
+                schoolYear: Array.isArray(fields.schoolYear) ? fields.schoolYear[0] : fields.schoolYear,
+                nationality: Array.isArray(fields.nationality) ? fields.nationality[0] : fields.nationality, 
+            };
+
+            const calculations = frenchschoolClass.calculateFrenchSchoolFees(data);
+            const htmlContent = frenchschoolClass.generateInvoiceHTML(data, calculations);
+            const pdfData = await frenchschoolClass.pdfFunc(htmlContent, null);
+
+            // --- THE FIX ---
+            // 1. Convert the Uint8Array to a proper Node.js Buffer to be safe.
+            const pdfBuffer = Buffer.from(pdfData);
+
+            // 2. Set all necessary headers for a file download.
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'attachment; filename="Proforma_Invoice.pdf"');
+            res.setHeader('Content-Length', pdfBuffer.length);
+
+            // 3. Use res.end() for sending raw buffers to prevent any further processing.
+            res.end(pdfBuffer);
+
+        } catch (e) {
+            console.error("PDF Generation Error:", e);
+            res.status(500).send("Error generating PDF");
+        }
+    });
+});
+
 
 
 

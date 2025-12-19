@@ -207,6 +207,8 @@ const ipCheck = (req,res,next)=>{
 
 function checkRequestOrigin(req){
   const obj = {};
+  console.log("Checking request origin from headers:");
+  //console.log(req.headers);
   if(typeof req.headers.origin!=="undefined"){
     obj.val = req.headers.origin;
   }else if(typeof req.headers.host!=="undefined"){
