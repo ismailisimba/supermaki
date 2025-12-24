@@ -1,1275 +1,587 @@
 const crypt = require("../crypto");
-const crypto = new crypt();
+// const crypto = new crypt(); // Unused in this context based on provided code, using native crypto for hashing
+const nativeCrypto = require('crypto'); // Renamed to avoid conflict
 const puppeteer = require("puppeteer");
-const pixelmatch = require("pixelmatch");
 const fs = require("fs");
 const fsp = require('fs.promises');
-const PNG = require('pngjs').PNG;
-const sharp = require('sharp');
-
-const jsdom = require("jsdom");
-const { JSDOM } = jsdom;
-
-const {BigQuery} = require('@google-cloud/bigquery');
+const path = require('path');
+const { JSDOM } = require("jsdom");
+const { BigQuery } = require('@google-cloud/bigquery');
 const cookieMan = require("../cookieMan");
 const cookieManager = new cookieMan();
-const bigqueryClient = new BigQuery();
-const {Storage} = require('@google-cloud/storage');
+// const bigqueryClient = new BigQuery(); // Unused in provided code
+const { Storage } = require('@google-cloud/storage');
 const storage = new Storage();
 const myBucket = storage.bucket('webscrapy');
 const myBucket2 = storage.bucket('alliancepdf');
-const previousScreenshotPath = './temp/previous-screenshot.png';
-const currentScreenshotPath = './temp/current-screenshot.png';
-const diffScreenshotPath = './temp/diff-screenshot.png';
-const filename = "./temp/temp6942.png"
+
+// CLOUD RUN CONFIGURATION
+// Cloud Run only allows writing to /tmp
+const TEMP_DIR = '/tmp'; 
+
 const specialDomains = [];
 
-
-
-
 class webscrap {
-    constructor(){
+    constructor() {
         this.getalliancepdf = getalliancepdf;
         this.geturl = geturl;
         this.getoldscraps = getoldscraps;
-        this.getscrap = getscrap
+        this.getscrap = getscrap;
         this.comparescraps = comparescraps;
         this.pdfFunc = pdfFunc;
     }
 }
 
-
-const geturl_old = async (req,res,next)=>{
-
-    const url = req.params.id;
-    if(isValidHttpUrl(url)){
-
-
-      try{
-
-    
-    let domain = (new URL(url));
-    domain = domain.hostname;
-    const browser = {};
-    browser.b = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
-    const page = {};
-    page.b = await browser.b.newPage();
-    await page.b.setViewport({
-      width: 1920,
-      height: 1080,
-      deviceScaleFactor: 1,
-    });
-    
-    const date = cookieManager.customDateFormater();
-    const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
-    const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
-
-    await page.b.goto(url,{waitUntil:"networkidle2"});
-    //await new Promise(resolve => setTimeout(resolve, 3000));
-    await page.b.evaluate(_ => {
-      function xcc_contains(selector, text) {
-          var elements = document.querySelectorAll(selector);
-          return Array.prototype.filter.call(elements, function(element){
-              return RegExp(text, "i").test(element.textContent.trim());
-          });
-      }
-      var _xcc;
-      _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|Accept)$');
-      if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
-  });
-    await page.b.screenshot({path: currentScreenshotPath, fullPage:true});
-
-
-    const ret = {};
-    ret.r = await Promise.all([
-        myBucket.upload(currentScreenshotPath, { destination: currentScreenshotName }),
-      ]);
-
-    const currentScreenshotUrl = `https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${currentScreenshotName}`;
-
-
-    res.send({domain,url,currentScreenshotUrl})
-    await browser.b.close();
-    }catch(e){
-      console.log(e);
-      res.send(e.message);
-    }
-
-  }else{
-    res.send({"notValidUrl":url})
-  }
-}
-
-const getoldscraps = async (req,res,next)=>{
-    const url = req.params.id;
-    const safeFileName = createSafeFileName(url);
-    if(isValidHttpUrl(url)){
-    //const searchTerm = domain.replaceAll(".","_")
-    const searchTerm = safeFileName;
-    const matchingFiles = [];
-    
-    const [files] = await myBucket.getFiles();
-
-    for (const file of files) {
-        // Check if the file's name contains the search term
-        const [ineArr, twArr] =file.name.split("-",1);
-        const nwstr = file.name.substring(ineArr.length + 1)
-        const index = nwstr.lastIndexOf(".");
-        const firstPart = nwstr.substring(0, index);
-        const safeFileNameComp = firstPart.replace("-innerText","");
-        if (safeFileNameComp===searchTerm) {
-          //console.log("der",safeFileNameComp);
-          //console.log("ss",searchTerm)
-          matchingFiles.push("https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/"+file.name);
-        }else{
-        
-          //console.log("fytu",extractUrlPart("https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/"+file.name));
-        }
-      }
-
-      if(matchingFiles.length>=1){
-        res.send({safeFileName,matchingFiles})
-      }else{
-        const returnVal = {"no":"files"}
-        res.send({safeFileName,returnVal})
-      }
-    }else{
-      res.send({"notValidUrl":url})
-    }
-}
-
-function extractUrlAndPathPart(fileName) {
-  const regex = /(\d+-www_[^-]+(?:-[^.]+)?)/;
-  const match = fileName.match(regex);
-  if (match && match[1]) {
-      return match[1];
-  } else {
-      throw new Error('URL and path part extraction failed');
-  }
-}
-
-
-
+/**
+ * Creates a safe, short filename using MD5 hashing to prevent ENAMETOOLONG errors.
+ */
 function createSafeFileName(url) {
-  // Remove protocol and domain from the URL, if present
-  const hostName = new URL(url).hostname;
-  const path = url.replace(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n]+)/, '');
-
-  // Replace unsafe characters with _, and replace = with -
-  const safeName = path.replace(/[\/\\:*?"<>|]/g, '_').replace(/=/g, '-');
-
-  return hostName.replaceAll(".","_") +"-"+safeName;
+    try {
+        const urlObj = new URL(url);
+        const hostName = urlObj.hostname.replace(/[^a-z0-9]/gi, '_');
+        
+        // Create a hash of the full URL to ensure uniqueness and short length
+        const hash = nativeCrypto.createHash('md5').update(url).digest('hex');
+        
+        // Return hostname + hash (e.g., "example_com-9e107d9d372bb6826bd81d3542a419d6")
+        return `${hostName}-${hash}`;
+    } catch (e) {
+        // Fallback for invalid URLs
+        return nativeCrypto.createHash('md5').update(url).digest('hex');
+    }
 }
 
-const getscrap_old =  async(req,res,next) =>{
+const isValidHttpUrl = (string) => {
+    let url;
+    try {
+        url = new URL(string);
+    } catch (_) {
+        return false;
+    }
+    return url.protocol === "http:" || url.protocol === "https:";
+}
+
+const getoldscraps = async (req, res, next) => {
+    const url = req.params.id;
+    
+    if (isValidHttpUrl(url)) {
+        const safeFileName = createSafeFileName(url);
+        // The safeFileName ends with the hash (after the last hyphen)
+        const parts = safeFileName.split('-');
+        const urlHash = parts[parts.length - 1]; 
+
+        const matchingFiles = [];
+        const [files] = await myBucket.getFiles();
+
+        for (const file of files) {
+            // We look for files that contain this unique hash
+            if (file.name.includes(urlHash) && file.name.endsWith('.html')) {
+                 matchingFiles.push("https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/" + file.name);
+            }
+        }
+
+        if (matchingFiles.length >= 1) {
+            res.send({ safeFileName, matchingFiles });
+        } else {
+            const returnVal = { "no": "files" };
+            res.send({ safeFileName, returnVal });
+        }
+    } else {
+        res.send({ "notValidUrl": url });
+    }
+}
+
+const geturl = async (req, res, next) => {
+    const url = req.params.id;
+    
+    if (isValidHttpUrl(url)) {
+        const safeFileName = createSafeFileName(url);
+        let domain = (new URL(url)).hostname;
+
+        try {
+            const browser = await puppeteer.launch({ 
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'], // Added flags for Cloud Run stability
+                ignoreHTTPSErrors: true, 
+                headless: 'new' 
+            });
+            const page = await browser.newPage();
+            
+            await page.setExtraHTTPHeaders({
+                'Accept-Language': 'en-US',
+            });
+
+            await page.goto(url, { waitUntil: "networkidle2" });
+
+            // Cookie Consent Logic
+            await page.evaluate(_ => {
+                function xcc_contains(selector, text) {
+                    var elements = document.querySelectorAll(selector);
+                    return Array.prototype.filter.call(elements, function (element) {
+                        return RegExp(text, "i").test(element.textContent.trim());
+                    });
+                }
+                var _xcc;
+                _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button, [class*=cookie] i, [class*=close] i, #CybotCookiebotDialogBodyLevelButtonAccept', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|ok|Accept|Close|close)$');
+                if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
+            });
+
+            // Disable animations for cleaner snapshots
+            await page.evaluate(() => {
+                const instantTransitionCssRule = '* { transition: none!important; animation: none!important; }';
+                const styleSheet = document.createElement('style');
+                styleSheet.setAttribute("type", "text/css");
+                styleSheet.innerText = instantTransitionCssRule;
+                document.head.appendChild(styleSheet);
+            });
+
+            await page.evaluate(() => window.scrollTo(0, 0));
+
+            const date = cookieManager.customDateFormater();
+            const timestamp = date.year + "_" + date.month + "_" + date.day + "_" + date.hour + "_" + date.minute + "_" + date.second.replaceAll(".", "_");
+            
+            const htmlContent = await page.content();
+            
+            // Define paths using /tmp/
+            const htmlFilename = `${timestamp}-${safeFileName}.html`;
+            const htmlPath = path.join(TEMP_DIR, htmlFilename);
+            
+            fs.writeFileSync(htmlPath, htmlContent);
+
+            // Save JSON of body text
+            const innerTextJsonFilename = `${timestamp}-${safeFileName}-innerText.json`;
+            const innerTextJsonPath = path.join(TEMP_DIR, innerTextJsonFilename);
+            
+            const htmlString1 = await page.evaluate(() => document.body.innerHTML);
+            const innerTextString = extractText(htmlString1);
+            const { innerTextData, htmlString } = await extractInformation(htmlString1, innerTextString);
+            
+            await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData, htmlData: htmlString }));
+
+            // Upload HTML and JSON to Google Cloud Bucket
+            await Promise.all([
+                myBucket.upload(htmlPath, { destination: htmlFilename }),
+                myBucket.upload(innerTextJsonPath, { destination: innerTextJsonFilename })
+            ]);
+
+            const pdfFilename = await trySavingPdf(timestamp, safeFileName, page);
+            
+            await browser.close();
+            
+            // Return filenames (or GCS paths) rather than local tmp paths
+            res.send({ htmlPath: htmlFilename, pdfPath: pdfFilename, innerTextJsonPath: innerTextJsonFilename });
+
+        } catch (e) {
+            console.log(e);
+            res.send("error");
+        }
+
+    } else {
+        res.send({ "notValidUrl": url });
+    }
+};
+
+const comparescraps = async (req, res, next) => {
+    const urlToScreen = req.params.url;
+    const oldScreen = req.params.picUrl; // This is a filename in the bucket
+    
+    if (isValidHttpUrl(urlToScreen)) {
+        const safeFileName = createSafeFileName(urlToScreen);
+
+        try {
+            let domain = (new URL(urlToScreen)).hostname;
+            const browser = await puppeteer.launch({ 
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'], 
+                ignoreHTTPSErrors: true, 
+                headless: 'new' 
+            });
+            const page = await browser.newPage();
+            await page.setExtraHTTPHeaders({
+                'Accept-Language': 'en-US',
+            });
+
+            await page.goto(urlToScreen, { waitUntil: "networkidle2" });
+
+            // Cookie logic
+            await page.evaluate(_ => {
+                function xcc_contains(selector, text) {
+                    var elements = document.querySelectorAll(selector);
+                    return Array.prototype.filter.call(elements, function (element) {
+                        return RegExp(text, "i").test(element.textContent.trim());
+                    });
+                }
+                var _xcc;
+                _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button, [class*=cookie] i, [class*=close] i, #CybotCookiebotDialogBodyLevelButtonAccept', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|ok|Accept|Close|close)$');
+                if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
+            });
+
+            await page.evaluate(() => {
+                const instantTransitionCssRule = '* { transition: none!important; animation: none!important; }';
+                const styleSheet = document.createElement('style');
+                styleSheet.setAttribute("type", "text/css");
+                styleSheet.innerText = instantTransitionCssRule;
+                document.head.appendChild(styleSheet);
+            });
+
+            await page.evaluate(() => window.scrollTo(0, 0));
+
+            // Check if old HTML exists in bucket
+            const oldHtmlFile = myBucket.file(oldScreen);
+            const [oldHtmlExists] = await oldHtmlFile.exists();
+
+            const date = cookieManager.customDateFormater();
+            const timestamp = date.year + "_" + date.month + "_" + date.day + "_" + date.hour + "_" + date.minute + "_" + date.second.replaceAll(".", "_");
+            
+            const htmlContent = await page.content();
+            
+            // Paths
+            const htmlFilename = `${timestamp}-${safeFileName}.html`;
+            const htmlPath = path.join(TEMP_DIR, htmlFilename);
+            
+            fs.writeFileSync(htmlPath, htmlContent);
+            await myBucket.upload(htmlPath, { destination: htmlFilename });
+
+            const innerTextJsonFilename = `${timestamp}-${safeFileName}-innerText.json`;
+            const innerTextJsonPath = path.join(TEMP_DIR, innerTextJsonFilename);
+
+            const htmlString1 = await page.evaluate(() => document.body.innerHTML);
+            const innerTextString = extractText(htmlString1);
+            const { innerTextData, htmlString } = await extractInformation(htmlString1, innerTextString);
+
+            await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData, htmlData: htmlString }));
+            await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonFilename });
+
+            const pdfPath = await trySavingPdf(timestamp, safeFileName, page);
+
+            if (!oldHtmlExists) {
+                // If no old file, just save new stuff and return
+                await browser.close();
+                res.send({ 
+                    message: "HTML and PDF saved", 
+                    pdfUrl: `.../${pdfPath}`, 
+                    htmlUrl: `.../${htmlFilename}`, 
+                    jsonPath: `.../${innerTextJsonFilename}`, 
+                    data: { comparisonResult: [{ "type": "No Difference" }] } 
+                });
+                return;
+            } else {
+                // Compare
+                const comparisonResult = [];
+                
+                // We don't download the old file to disk here to avoid potential filename issues again,
+                // we download it into memory to parse JSON.
+                const oldInnerTextJsonFile = myBucket.file(`${oldScreen}`);
+                const oldInnerTextData = await oldInnerTextJsonFile.download().then(data => JSON.parse(data[0])).catch(e => console.log(e));
+
+                const resulty = findDifference(innerTextData, oldInnerTextData.innerText);
+                const chanceOfDiff = typeof resulty != "string" ? parseFloat(resulty.string1DiffPercentage) : 0;
+                
+                if (resulty && resulty.string1Diff && chanceOfDiff > 5) {
+                    if (true) {
+                        comparisonResult.push(resulty);
+                    }
+                }
+
+                if (comparisonResult.length === 0) {
+                    comparisonResult.push({ type: 'No Difference' });
+                }
+                
+                await browser.close();
+                
+                const ogHtml = htmlString;
+                const data = { pdfPath, htmlPath: htmlFilename, oldScreen, innerTextJsonPath: innerTextJsonFilename, comparisonResult, ogHtml };
+                const someHtml = await generateEmailHtml(data, urlToScreen);
+                data.htmlString = undefined;
+                res.send({ data, someHtml });
+            }
+
+        } catch (e) {
+            console.log(e);
+            res.send(e.message)
+        }
+
+    } else {
+        res.send({ "notValidUrl": urlToScreen });
+    }
+};
+
+const pdfFunc = async (f, res, next) => {
+    const bodyPost = f.fields;
+    const filename = bodyPost.name;
+    const fileData = bodyPost.data;
+    const file = myBucket2.file(filename);
+    const url = await file.save(Buffer.from(fileData, "base64"), {
+        contentType: "application/pdf",
+        resumable: false,
+    }).then(() => {
+        return `https://expresstoo-jzam6yvx3q-ez.a.run.app/getalliancepdf/${filename}`;
+    })
+    res.send({ url: url });
+}
+
+const getalliancepdf = async (req, res, next) => {
+    const file = myBucket2.file(req.params.id);
+    const exists = await file.exists();
+
+    if (exists[0]) {
+        const meta = await file.getMetadata().then(function (data) {
+            return data[0];
+        });
+        const fileData = await file.download().then(function (data) {
+            return data[0];
+        }).catch(e => {
+            console.log(e);
+        });
+        res.set('Content-Disposition', `inline; filename="${req.params.id + "." + meta.contentType.split("/")[1]}"`);
+        res.contentType(`${meta.contentType}`);
+        res.send(fileData);
+
+    } else {
+        res.send({ "no": "pdf" });
+    }
+}
+
+const getscrap = async (req, res, next) => {
     const file = myBucket.file(req.params.id);
     const exists = await file.exists();
 
-      if(exists[0]){
-        const meta = await file.getMetadata().then(function(data) {
-          const metadata = data[0];
-          const apiResponse = data[1];
-          return metadata;
+    if (exists[0]) {
+        const meta = await file.getMetadata().then(function (data) {
+            return data[0];
         });
-        const fileData = await file.download().then(function(data) {
-            const contents = data[0];
-            return contents;
-          }).catch(e=>{
+        const fileData = await file.download().then(function (data) {
+            return data[0];
+        }).catch(e => {
             console.log(e);
-          });
-          res.set('Content-Disposition', `inline; filename="${req.params.id+"."+meta.contentType.split("/")[1]}"`);
-          res.contentType(`${meta.contentType}`);
-          res.send(fileData);
+        });
+        res.set('Content-Disposition', `inline; filename="${req.params.id + "." + meta.contentType.split("/")[1]}"`);
+        res.contentType(`${meta.contentType}`);
+        res.send(fileData);
 
-      }else{
-        res.send({"no":"scrap"});
-      }
-
-}
-
-const comparescraps_old = async(req,res,next)=>{
-    const obj ={} 
-    const urlToScreen = req.params.url;
-    if(isValidHttpUrl(urlToScreen)){
-    const oldScreen =  req.params.picUrl;
-    const file = myBucket.file(oldScreen);
-    let domain = (new URL(urlToScreen));
-    domain = domain.hostname;
-    obj["1"] = {urlToScreen,oldScreen};
-
-    // Download the file from the bucket
-    await file.download({ destination: previousScreenshotPath });
-    
-    const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true});
-    const page = await browser.newPage();
-    await page.setViewport({
-      width: 1920,
-      height: 1080,
-      deviceScaleFactor: 1,
-    });
-    const date = cookieManager.customDateFormater();
-    const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
-    const currentScreenshotName = `${timestamp}-${domain.replaceAll(".","_")}.png`;
-    
-  
-    // Launch Puppeteer and navigate to the URL
-    await page.goto(urlToScreen,{waitUntil:"networkidle2"});
-    //await new Promise(resolve => setTimeout(resolve, 3000));
-
-    await page.evaluate(_ => {
-      function xcc_contains(selector, text) {
-          var elements = document.querySelectorAll(selector);
-          return Array.prototype.filter.call(elements, function(element){
-              return RegExp(text, "i").test(element.textContent.trim());
-          });
-      }
-      var _xcc;
-      _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|Accept)$');
-      if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
-  });
-  
-    // Take a screenshot of the full page
-    await page.screenshot({path: currentScreenshotPath, fullPage:true});
-  
-    // Close Puppeteer
-    await browser.close();
-  
-    // Read the file and screenshot into PNG buffers
-    const fileBuffer = fs.readFileSync(previousScreenshotPath);
-    const screenshotBuffer = fs.readFileSync(currentScreenshotPath);
-    const fileImage = PNG.sync.read(fileBuffer);
-    const screenshotImage = PNG.sync.read(screenshotBuffer);
-    const widthY = fileImage.width;
-    const heightY = fileImage.height;
-    const widthX = screenshotImage.width;
-    const heightX = screenshotImage.height;
-    const XY = {};
-    XY.height = heightX>heightY?heightY:heightX;
-    XY.width = widthX>widthY?widthY:widthX;
-
-     // Crop the screenshot and file to same size using lowest common dimensions
-    const newFile = await sharp(fileBuffer)
-    .extract({left: 0, width: XY.width, height: XY.height, top: 0})
-    .toBuffer();
-    const newScreen = await sharp(screenshotBuffer)
-    .extract({left: 0, width: XY.width, height: XY.height, top: 0})
-    .toBuffer();
-    
-    XY.fileData = PNG.sync.read(newFile);
-    XY.screenData = PNG.sync.read(newScreen);
-  
-    // Compare the two images and log any differences
-    const diffPixels = pixelmatch(XY.fileData.data, XY.screenData.data, null, XY.width, XY.height);
-    if (diffPixels/(XY.height*XY.width) > 0.15) {
-      await Promise.all([
-        myBucket.upload(currentScreenshotPath, { destination: currentScreenshotName }),
-      ]);
-      const currentScreenshotUrl = `https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${currentScreenshotName}`;
-      obj["newScreen"] = currentScreenshotUrl;
-      obj["numOfDifPix"] = diffPixels;
-      obj["percDiff"] = diffPixels/(XY.height*XY.width);
     } else {
-      await Promise.all([
-        myBucket.upload(currentScreenshotPath, { destination: currentScreenshotName }),
-      ]);
-      const currentScreenshotUrl = `https://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${currentScreenshotName}`;
-      obj["newScreen"] = currentScreenshotUrl;
-      console.log('No differences found');
-      obj["numOfDifPix"] = diffPixels;
-      obj["percDiff"] = diffPixels/(XY.height*XY.width);
+        res.send({ "no": "scrap" });
     }
-      }else{
-    obj.res = {"notValidUrl":urlToScreen};
-      }
-    res.send(obj)
 }
-
-
-
-
-const pdfFunc = async(f, res, next)=>{
-  const bodyPost = f.fields;
-  const filename = bodyPost.name
-  const fileData = bodyPost.data;
-  const file = myBucket2.file(filename);
-  const url = await file.save(Buffer.from(fileData,"base64"), {
-    contentType: "application/pdf",
-    resumable: false,
-  }).then(()=>{
-    return `https://expresstoo-jzam6yvx3q-ez.a.run.app/getalliancepdf/${filename}`;
-  })
-  res.send({url:url});
-}
-
-
-
-
-const getalliancepdf =  async(req,res,next) =>{
-  const file = myBucket2.file(req.params.id);
-  const exists = await file.exists();
-
-    if(exists[0]){
-      const meta = await file.getMetadata().then(function(data) {
-        const metadata = data[0];
-        const apiResponse = data[1];
-        return metadata;
-      });
-      const fileData = await file.download().then(function(data) {
-          const contents = data[0];
-          return contents;
-        }).catch(e=>{
-          console.log(e);
-        });
-        res.set('Content-Disposition', `inline; filename="${req.params.id+"."+meta.contentType.split("/")[1]}"`);
-        res.contentType(`${meta.contentType}`);
-        res.send(fileData);
-
-    }else{
-      res.send({"no":"pdf"});
-    }
-
-}
-
-
-
-
-
-
-const isValidHttpUrl = (string)=>{
-  let url;
-  
-  try {
-    url = new URL(string);
-  } catch (_) {
-    return false;  
-  }
-
-  return url.protocol === "http:" || url.protocol === "https:";
-}
-
-
-
-const geturl = async (req, res, next) => {
-  const url = req.params.id;
-  const safeFileName = createSafeFileName(url);
-  if (isValidHttpUrl(url)) {
-    let domain = (new URL(url)).hostname;
-
-    // Check if domain requires special action
-    if (specialDomains.includes(domain)) {
-      // Custom actions for special domains
-    }
-
-    try{
-
-      const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
-      const page = await browser.newPage();
-      await page.setUserAgent('Chrome/91.0.4472.124')
-      await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US',
-      });
-      
-
-      await page.goto(url, { waitUntil: "networkidle2" });
-      //await new Promise(resolve => setTimeout(resolve, 3000));
-
-      await page.evaluate(_ => {
-        function xcc_contains(selector, text) {
-          var elements = document.querySelectorAll(selector);
-          return Array.prototype.filter.call(elements, function(element){
-              return RegExp(text, "i").test(element.textContent.trim());
-          });
-      }
-      var _xcc;
-      _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button, [class*=cookie] i, [class*=close] i, #CybotCookiebotDialogBodyLevelButtonAccept', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|ok|Accept|Close|close)$');
-      if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
-      });
-
-      // Add these lines to set the user agent and locale
-      //await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-   
-
-  // Add this line to disable animations
-  await page.evaluate(() => {
-    const instantTransitionCssRule = '* { transition: none!important; animation: none!important; }';
-    const styleSheet = document.createElement('style');
-    styleSheet.setAttribute("type","text/css");
-    styleSheet.innerText = instantTransitionCssRule;
-    document.head.appendChild(styleSheet);
-  });
-
-  // Add this line to scroll to the top before taking a screenshot
-  await page.evaluate(() => window.scrollTo(0, 0));
-
-
-
-
-
-
-
-      const date = cookieManager.customDateFormater();
-      const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
-      const htmlContent = await page.content();
-      const htmlPath = `${timestamp}-${safeFileName}.html`;
-      fs.writeFileSync(htmlPath, htmlContent);
-  
-      // Save PDF
-      
-
-      //Save JSON of body text
-      const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-      //const innerTextString = await page.evaluate(() => document.body.textContent);
-      const htmlString1 = await page.evaluate(() => document.body.innerHTML);
-      const innerTextString = extractText(htmlString1);
-      //const innerTextData =  await extractReadableData(htmlString)
-      const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
-      await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData, htmlData:htmlString }));
-  
-      // Upload HTML and PDF to Google Cloud Bucket
-      await Promise.all([
-        myBucket.upload(htmlPath, { destination: htmlPath }),
-        //myBucket.upload(pdfPath, { destination: pdfPath }),
-        myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath })
-  
-      ]);
-      const pdfPath = await trySavingPdf(timestamp,safeFileName,page);
-      await browser.close();
-      res.send({htmlPath,pdfPath,innerTextJsonPath})
-
-    }catch(e){
-      console.log(e)
-      res.send ("error");
-    }
-   
-
-  } else {
-    res.send({ "notValidUrl": url });
-  }
-};
-
-
-
-
-const comparescraps = async (req, res, next) => {
-  const urlToScreen = req.params.url;
-  const oldScreen =  req.params.picUrl;
-  const safeFileName = createSafeFileName(urlToScreen);
-  if (isValidHttpUrl(urlToScreen)) {
-
-    try{
-    let domain = (new URL(urlToScreen)).hostname;
-    const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
-    const page = await browser.newPage();
-    await page.setUserAgent('Chrome/91.0.4472.124');
-    await page.setExtraHTTPHeaders({
-    'Accept-Language': 'en-US',
-    });
-        
-        // Cookie logic
-        await page.goto(urlToScreen, { waitUntil: "networkidle2" });
-        //await new Promise(resolve => setTimeout(resolve, 3000));
-
-        await page.evaluate(_ => {
-          function xcc_contains(selector, text) {
-            var elements = document.querySelectorAll(selector);
-            return Array.prototype.filter.call(elements, function(element){
-                return RegExp(text, "i").test(element.textContent.trim());
-            });
-        }
-        var _xcc;
-        _xcc = xcc_contains('[id*=cookie] a, [class*=cookie] a, [id*=cookie] button, [class*=cookie] button, [class*=cookie] i, [class*=close] i, #CybotCookiebotDialogBodyLevelButtonAccept', '^(Alle akzeptieren|Akzeptieren|Verstanden|Zustimmen|Okay|OK|ok|Accept|Close|close)$');
-        if (_xcc != null && _xcc.length != 0) { _xcc[0].click(); }
-        });
-
-        // Add these lines to set the user agent and locale
-        //await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-       
-
-        // Add this line to disable animations
-        await page.evaluate(() => {
-        const instantTransitionCssRule = '* { transition: none!important; animation: none!important; }';
-        const styleSheet = document.createElement('style');
-        styleSheet.setAttribute("type","text/css");
-        styleSheet.innerText = instantTransitionCssRule;
-        document.head.appendChild(styleSheet);
-        });
-
-        // Add this line to scroll to the top before taking a screenshot
-        await page.evaluate(() => window.scrollTo(0, 0));
-
-
-    // Check if domain requires special action
-    if (specialDomains.includes(domain)) {
-      // Custom actions for special domains
-    }
-
-    // ... rest of your code
-    // Check if old HTML exists, if not, save new HTML and PDF
-    const oldHtmlFile = myBucket.file(oldScreen);
-    const [oldHtmlExists] = await oldHtmlFile.exists();
-    if (!oldHtmlExists) {
-      // Save and Upload HTML
-      const date = cookieManager.customDateFormater();
-      const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
-      const htmlContent = await page.content();
-      const htmlPath = `${timestamp}-${safeFileName}.html`;
-      fs.writeFileSync(htmlPath, htmlContent);
-      await myBucket.upload(htmlPath, { destination: htmlPath });
-
-      //
-      //const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-      //const innerTextData = await page.evaluate(() => document.body.innerText);
-      //const htmlString = await page.evaluate(() => document.body.innerHTML);
-      //const innerTextData =  await extractReadableData(htmlString)
-
-      const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-      //const innerTextString = await page.evaluate(() => document.body.textContent);
-      const htmlString1 = await page.evaluate(() => document.body.innerHTML);
-      const innerTextString = extractText(htmlString1);
-      //const innerTextData =  await extractReadableData(htmlString)
-      const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
-
-
-
-
-      await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData ,htmlData:htmlString }));
-      await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
-  
-
-      // Save and Upload PDF
-      const pdfPath = await trySavingPdf(timestamp,safeFileName,page);
-      await browser.close();
-      res.send({ message: "HTML and PDF saved", pdfUrl: `.../${pdfPath}`, htmlUrl: `.../${htmlPath}`,jsonPath:`.../${innerTextJsonPath}`,data:{comparisonResult:[{"type":"No Difference"}]} });
-      return;
-    }else{
-    
-          // Save and Upload HTML
-          const date = cookieManager.customDateFormater();
-          const timestamp = date.year+"_"+date.month+"_"+date.day+"_"+date.hour+"_"+date.minute+"_"+date.second.replaceAll(".","_");
-          const htmlContent = await page.content();
-          const htmlPath = `${timestamp}-${safeFileName}.html`;
-          fs.writeFileSync(htmlPath, htmlContent);
-          await myBucket.upload(htmlPath, { destination: htmlPath });
-
-          //
-          //const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-          //const innerTextData = await page.evaluate(() => document.body.innerText);
-          //const htmlString2 = await page.evaluate(() => document.body.innerHTML);
-          //const innerTextData =  await extractReadableData(htmlString2)
-
-          const innerTextJsonPath = `${timestamp}-${safeFileName}-innerText.json`;
-          //const innerTextString = await page.evaluate(() => document.body.textContent);
-          const htmlString1 = await page.evaluate(() => document.body.innerHTML);
-          const innerTextString = extractText(htmlString1);
-          //const innerTextData =  await extractReadableData(htmlString)
-          //const xytu = convertHTMLToText(htmlString1);
-          const {innerTextData,htmlString} = await extractInformation(htmlString1, innerTextString)
-          //const innerTextData = xytu;
-          //const htmlString = xytu;
-
-          await fsp.writeFile(innerTextJsonPath, JSON.stringify({ innerText: innerTextData ,htmlData:htmlString}));
-          await myBucket.upload(innerTextJsonPath, { destination: innerTextJsonPath });
-      
-    
-          // Save and Upload PDF
-          const pdfPath = await trySavingPdf(timestamp,safeFileName,page);
-        
-      
-        
-      
-      const comparisonResult = [];
-
-          const oldInnerTextJsonFile = myBucket.file(`${oldScreen}`);
-    
-      
-          //const htmlComp = await compareHtmlFromBucket(urlToScreen,`${oldScreen.replace('-innerText.json','.html')}`);
-          //console.log("shitShow1",htmlComp)
-      
-            const oldInnerTextData = await oldInnerTextJsonFile.download().then(data => JSON.parse(data[0])).catch(e => console.log(e));
-          //const htmlString = await page.evaluate(() => document.body.innerHTML);
-          //const newInnerTextData =  await extractReadableData(htmlString);
-          const resulty = findDifference(innerTextData, oldInnerTextData.innerText);
-          const chanceOfDiff = typeof resulty!="string"?parseFloat(resulty.string1DiffPercentage):0;
-          if (resulty && resulty.string1Diff && chanceOfDiff>5) {
-            //console.log("resulty",resulty)
-              //const htmlComp = await compareHtmlFromBucket(urlToScreen,`${oldScreen.replace('-innerText.json','.html')}`);
-              //console.log("shitShow1",htmlComp)
-           if(true){
-            comparisonResult.push(resulty);
-           }
-          }
-          
-          
-
-
-
-// Now, comparisonResult contains all your mismatches
-
-
-        if (comparisonResult.length === 0) {
-          comparisonResult.push({ type: 'No Difference' });
-        }
-        await browser.close();
-        const ogHtml = htmlString;
-        const data = { pdfPath, htmlPath, oldScreen, innerTextJsonPath,comparisonResult,ogHtml };
-        const someHtml = await generateEmailHtml(data,urlToScreen);
-        data.htmlString = undefined;
-        res.send({data,someHtml});
-      
-
-      
-    }
-
-  }catch(e){
-    console.log(e);
-    res.send(e.message)
-  }
-      
-  } else {
-    res.send({ "notValidUrl": urlToScreen });
-  }
-};
-
-
-function convertHTMLToText(template) {
-    // Use image alt text
-    template = template.replace(/<img .*?alt=["']?([^"']*)["']?.*?>/gi, "$1");
-    // Convert links to something useful
-    template = template.replace(/<a .*?href=["']?([^"']*)["']?.*?>(.*?)<\/a>/gi, "$2 [$1]");
-    // Let's try to keep vertical whitespace intact
-    template = template.replace(/<(\/p|\/div|\/h\d|br)\w?\/?>/gi, "\n");
-    // Remove the rest of the tags
-    template = template.replace(/<[A-Za-z\/][^<>]*>/gi, "");
-
-    return template;
-}
-
-const compareHtmlFromBucket = async (url,filename) => {
-  // Initialize browser and page
-  const browser = await puppeteer.launch({args: ['--no-sandbox'],ignoreHTTPSErrors:true,headless:'new'});
-  const page = await browser.newPage();
-
-  // Navigate to URL and get its HTML content
-  await page.goto(url, { waitUntil: 'networkidle2' });
-  //await new Promise(resolve => setTimeout(resolve, 3000));
-
-  const newHtmlContent = await page.content();
-
-  // Evaluate the new page to a constant
-  const newPageData = await page.evaluate(() => {
-    const elements = document.querySelectorAll('*');
-    return Array.from(elements).map(el => ({
-      tagName: el.tagName,
-      id: el.id,
-      className: el.className,
-      attributes: Array.from(el.attributes).map(attr => ({ name: attr.name, value: attr.value })),
-      innerText: el.innerText,
-    }));
-  });
-
-  const file = myBucket.file(filename);
-
-  let oldHtmlContent;
-  try {
-    oldHtmlContent = (await file.download())[0].toString();
-  } catch (err) {
-    console.error('Error downloading file from bucket:', err);
-    return false;
-  }
-
-  // Load the old HTML content into a new Puppeteer page
-  const oldPage = await browser.newPage();
-  await oldPage.setContent(oldHtmlContent);
-
-  // Evaluate the old page to a constant
-  const oldPageData = await oldPage.evaluate(() => {
-    const elements = document.querySelectorAll('*');
-    return Array.from(elements).map(el => ({
-      tagName: el.tagName,
-      id: el.id,
-      className: el.className,
-      attributes: Array.from(el.attributes).map(attr => ({ name: attr.name, value: attr.value })),
-      innerText: el.innerText,
-    }));
-  });
-
-  await browser.close();
-
-  // Now compare the oldPageData and newPageData constants
-  if (oldPageData.length !== newPageData.length) {
-    return true; // Different number of elements
-  }
-
-  for (let i = 0; i < oldPageData.length; i++) {
-    const oldEl = oldPageData[i];
-    const newEl = newPageData[i];
-
-    if (false//oldEl.tagName !== newEl.tagName || 
-        //oldEl.id !== newEl.id //|| 
-        //oldEl.className !== newEl.className || 
-        //oldEl.innerText !== newEl.innerText// ||
-        //oldEl.attributes.length !== newEl.attributes.length
-
-        ){
-      return true; // Differences found
-    }
-
-    /*for (let j = 0; j < oldEl.attributes.length; j++) {
-      const oldAttr = oldEl.attributes[j];
-      const newAttr = newEl.attributes.find(attr => attr.name === oldAttr.name);
-      if (!newAttr || newAttr.value !== oldAttr.value) {
-        return true; // Attribute differences found
-      }
-    }*/
-  }
-
-  return false; // No differences found
-};
-
-
-
-
-
-function onlyUnique(value, index, array) {
-  return array.indexOf(value) === index;
-}
-
-function hasThreeWordsWithTwoLettersOrMore(newText) {
-  // Remove any extra white spaces and split the text into an array of words
-  const words = newText.trim().split(/\s+/);
-
-  // Filter out words that have less than 2 characters
-  const filteredWords = words.filter(word => word.length >= 2);
-
-  // Check if there are at least 3 such words
-  return filteredWords.length >= 3;
-}
-
-const containsCode = (text) => {
-  return /<[^>]*>|{[^}]*}|;/.test(text);
-};
-
-const getscrap =  async(req,res,next) =>{
-  const file = myBucket.file(req.params.id);
-  const exists = await file.exists();
-
-    if(exists[0]){
-      const meta = await file.getMetadata().then(function(data) {
-        const metadata = data[0];
-        const apiResponse = data[1];
-        return metadata;
-      });
-      const fileData = await file.download().then(function(data) {
-          const contents = data[0];
-          return contents;
-        }).catch(e=>{
-          console.log(e);
-        });
-        res.set('Content-Disposition', `inline; filename="${req.params.id+"."+meta.contentType.split("/")[1]}"`);
-        res.contentType(`${meta.contentType}`);
-        res.send(fileData);
-
-    }else{
-      res.send({"no":"scrap"});
-    }
-
-}
-
-/*function findDifference(str1, str2) {
-  let i = 0;
-  let j = 0;
-  let similarities = [];
-  let diff1 = "";
-  let diff2 = "";
-
-  while (i < str1.length && j < str2.length) {
-    // Find similar parts
-    let tempSim = "";
-    while (i < str1.length && j < str2.length && str1[i] === str2[j]) {
-      tempSim += str1[i];
-      i++;
-      j++;
-    }
-    if (tempSim) similarities.push(tempSim);
-
-    // Find different parts
-    let tempDiff1 = "";
-    let tempDiff2 = "";
-    while (i < str1.length && (j >= str2.length || str1[i] !== str2[j])) {
-      tempDiff1 += str1[i];
-      i++;
-    }
-    while (j < str2.length && (i >= str1.length || str1[i] !== str2[j])) {
-      tempDiff2 += str2[j];
-      j++;
-    }
-
-    if (tempDiff1 || tempDiff2) {
-      diff1 += tempDiff1;
-      diff2 += tempDiff2;
-    }
-  }
-
-  // Check if there are remaining characters in either string
-  if (i < str1.length) diff1 += str1.slice(i);
-  if (j < str2.length) diff2 += str2.slice(j);
-
-  // Calculate percentages
-  let similarityPercentage = 0;
-  let string1DiffPercentage = 0;
-
-  const totalSimilarityLength = similarities.reduce((acc, s) => acc + s.length, 0);
-  if (str1.length > 0) {
-    similarityPercentage = (totalSimilarityLength / str1.length) * 100;
-    string1DiffPercentage = (diff1.length / str1.length) * 100;
-  }
-
-  // Return the results
-  if (diff1 || diff2 || similarities.length > 0) {
-    return {
-      string1Diff: diff1,
-      string2Diff: diff2,
-      similarities: similarities,
-      similarityPercentage: similarityPercentage.toFixed(2),
-      string1DiffPercentage: string1DiffPercentage.toFixed(2),
-    };
-  } else {
-    return '';
-  }
-}*/
-
-/*function findDifference(str1, str2) {
-  const words1 = str1.split(/\s+/);
-  const words2 = str2.split(/\s+/);
-  let i = 0;
-  let j = 0;
-  let similarities = [];
-  let diff1 = [];
-  let diff2 = [];
-
-  while (i < words1.length && j < words2.length) {
-    let tempSim = [];
-    while (i < words1.length && j < words2.length && words1[i] === words2[j]) {
-      tempSim.push(words1[i]);
-      i++;
-      j++;
-    }
-    if (tempSim.length > 0) similarities.push(...tempSim);
-
-    let tempDiff1 = [];
-    let tempDiff2 = [];
-    while (i < words1.length && (j >= words2.length || words1[i] !== words2[j])) {
-      tempDiff1.push(words1[i]);
-      i++;
-    }
-    while (j < words2.length && (i >= words1.length || words1[i] !== words2[j])) {
-      tempDiff2.push(words2[j]);
-      j++;
-    }
-
-    if (tempDiff1.length > 0 || tempDiff2.length > 0) {
-      diff1.push(...tempDiff1);
-      diff2.push(...tempDiff2);
-    }
-  }
-
-  if (i < words1.length) diff1.push(...words1.slice(i));
-  if (j < words2.length) diff2.push(...words2.slice(j));
-
-  let similarityPercentage = 0;
-  let string1DiffPercentage = 0;
-
-  if (words1.length > 0) {
-    similarityPercentage = (similarities.length / words1.length) * 100;
-    string1DiffPercentage = (diff1.length / words1.length) * 100;
-  }
-
-  if (diff1.length > 0 || diff2.length > 0 || similarities.length > 0) {
-    return {
-      string1Diff: diff1.join(" "),
-      string2Diff: diff2.join(" "),
-      similarities: similarities.join(" "),
-      similarityPercentage: similarityPercentage.toFixed(2),
-      string1DiffPercentage: string1DiffPercentage.toFixed(2),
-    };
-  } else {
-    return '';
-  }
-}*/
 
 function findDifference(str1, str2) {
-  const words1 = str1.split(/(\s+)/);
-  const words2 = str2.split(/(\s+)/);
-  let i = 0;
-  let j = 0;
-  let similarities = [];
-  let diff1 = [];
-  let diff2 = [];
+    if(!str1 || !str2) return '';
+    const words1 = str1.split(/(\s+)/);
+    const words2 = str2.split(/(\s+)/);
+    let i = 0;
+    let j = 0;
+    let similarities = [];
+    let diff1 = [];
+    let diff2 = [];
 
-  while (i < words1.length && j < words2.length) {
-    let tempSim = [];
-    while (i < words1.length && j < words2.length && words1[i] === words2[j]) {
-      tempSim.push(words1[i]);
-      i++;
-      j++;
+    while (i < words1.length && j < words2.length) {
+        let tempSim = [];
+        while (i < words1.length && j < words2.length && words1[i] === words2[j]) {
+            tempSim.push(words1[i]);
+            i++;
+            j++;
+        }
+        if (tempSim.length > 0) similarities.push(...tempSim);
+
+        let tempDiff1 = [];
+        let tempDiff2 = [];
+        while (i < words1.length && (j >= words2.length || words1[i] !== words2[j])) {
+            tempDiff1.push(words1[i]);
+            i++;
+        }
+        while (j < words2.length && (i >= words1.length || words1[i] !== words2[j])) {
+            tempDiff2.push(words2[j]);
+            j++;
+        }
+
+        if (tempDiff1.length > 0 || tempDiff2.length > 0) {
+            diff1.push(...tempDiff1);
+            diff2.push(...tempDiff2);
+        }
     }
-    if (tempSim.length > 0) similarities.push(...tempSim);
 
-    let tempDiff1 = [];
-    let tempDiff2 = [];
-    while (i < words1.length && (j >= words2.length || words1[i] !== words2[j])) {
-      tempDiff1.push(words1[i]);
-      i++;
+    if (i < words1.length) diff1.push(...words1.slice(i));
+    if (j < words2.length) diff2.push(...words2.slice(j));
+
+    let similarityPercentage = 0;
+    let string1DiffPercentage = 0;
+    let string2DiffPercentage = 0;
+
+    const actualWords1 = words1.filter(word => word.trim() !== '');
+    if (actualWords1.length > 0) {
+        similarityPercentage = (similarities.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
+        string1DiffPercentage = (diff1.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
+        string2DiffPercentage = (diff2.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
     }
-    while (j < words2.length && (i >= words1.length || words1[i] !== words2[j])) {
-      tempDiff2.push(words2[j]);
-      j++;
+
+    if (diff1.length > 0 || diff2.length > 0 || similarities.length > 0) {
+        return {
+            string1Diff: diff1.join(""),
+            string1DiffLength: diff1.length,
+            string2Diff: diff2.join(""),
+            string2DiffLength: diff2.length,
+            similarities: similarities.join(""),
+            similarityPercentage: similarityPercentage.toFixed(2),
+            string1DiffPercentage: string1DiffPercentage.toFixed(2),
+            string2DiffPercentage: string2DiffPercentage.toFixed(2),
+        };
+    } else {
+        return '';
     }
-
-    if (tempDiff1.length > 0 || tempDiff2.length > 0) {
-      diff1.push(...tempDiff1);
-      diff2.push(...tempDiff2);
-    }
-  }
-
-  if (i < words1.length) diff1.push(...words1.slice(i));
-  if (j < words2.length) diff2.push(...words2.slice(j));
-
-  let similarityPercentage = 0;
-  let string1DiffPercentage = 0;
-  let string2DiffPercentage = 0;
-
-  const actualWords1 = words1.filter(word => word.trim() !== '');
-  if (actualWords1.length > 0) {
-    similarityPercentage = (similarities.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
-    string1DiffPercentage = (diff1.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
-    string2DiffPercentage = (diff2.filter(word => word.trim() !== '').length / actualWords1.length) * 100;
-  }
-
-  if (diff1.length > 0 || diff2.length > 0 || similarities.length > 0) {
-    return {
-      string1Diff: diff1.join(""),
-      string1DiffLength: diff1.length,
-      string2Diff: diff2.join(""),
-      string2DiffLength: diff2.length,
-      similarities: similarities.join(""),
-      similarityPercentage: similarityPercentage.toFixed(2),
-      string1DiffPercentage: string1DiffPercentage.toFixed(2),
-      string2DiffPercentage: string2DiffPercentage.toFixed(2),
-    };
-  } else {
-    return '';
-  }
 }
 
+const generateEmailHtml = async (data, domain) => {
+    // Extract necessary data
+    const { pdfPath, htmlPath, oldScreen, comparisonResult, ogHtml } = data;
 
-
-
-
-
-const generateEmailHtml = async(data, domain) => {
-  // Extract necessary data
-  const { pdfPath, htmlPath, oldScreen, comparisonResult,ogHtml } = data;
-
-  // Check if comparisonResult exists and has content
-  if (!comparisonResult || comparisonResult.length === 0 || !comparisonResult[0].string1Diff) {
-    return `
+    // Check if comparisonResult exists and has content
+    if (!comparisonResult || comparisonResult.length === 0 || !comparisonResult[0].string1Diff) {
+        return `
     <div style="max-width: 600px; margin: auto;">
       <h2 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h2>
       <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
       <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
-      <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json','.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen.replace('-innerText.json','.pdf')}</a></p>
+      <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json', '.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen.replace('-innerText.json', '.pdf')}</a></p>
 
       <h3 style="font-family: Arial, sans-serif; font-color:green;">No New Text Detected</h3>
       <p style="font-family: 'Arial', Courier, monospace; font-size:12px">No new text has been detected during this run.</p>
     </div>
 `;
-  }
+    }
 
-  // Extract differences and similarities
-  const { string1Diff } = comparisonResult[0];
-  //const newHTMl = convertTextToHTML(string1Diff,htmlString);
-  const {htmlString} = await extractInformation(ogHtml,string1Diff);
-  
-  // Build the email HTML content
-  const emailHtml = `
+    // Extract differences and similarities
+    const { string1Diff } = comparisonResult[0];
+    const { htmlString } = await extractInformation(ogHtml, string1Diff);
+
+    // Build the email HTML content
+    const emailHtml = `
       <div style="max-width: 600px; margin: auto;">
         <h2 style="font-family: Arial, sans-serif;">AGA Source Checking Report for <a href="${domain}">${domain}</a> </h2>
         <p style="font-family: Arial, sans-serif;">PDF: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${pdfPath}" target="_blank" style="color: #007bff; text-decoration: none;">${pdfPath}</a></p>
         <p style="font-family: Arial, sans-serif;">HTML: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${htmlPath}" target="_blank" style="color: #007bff; text-decoration: none;">${htmlPath}</a></p>
-        <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json','.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen.replace('-innerText.json','.pdf')}</a></p>
-
+        <p style="font-family: Arial, sans-serif;">Old Screen: <a href="http://expresstoo-jzam6yvx3q-ez.a.run.app/getscrap/${oldScreen.replace('-innerText.json', '.pdf')}" target="_blank" style="color: #007bff; text-decoration: none;">${oldScreen.replace('-innerText.json', '.pdf')}</a></p>
 
         <h3 style="font-family: Arial, sans-serif; font-color:red">New Text Detected</h3>
         <p style="font-family: 'Arial', Courier, monospace; font-size:12px">'${htmlString}'</p>
       </div>
   `;
 
-  return emailHtml;
+    return emailHtml;
 };
 
-
-function findMatchingElements(plainText, htmlString) {
-  const dom = new JSDOM(htmlString);
-  const document = dom.window.document;
-  console.log("htmlString",htmlString)
-  console.log("plainText",plainText)
-  // Split the plain text string by two new lines to get individual text parts
-  const textParts = plainText.split('\n\n');
-  const htmlParts = document.querySelectorAll('a');
-
-  // Create a container to hold the matching elements
-  const container = document.createElement('div');
-  const cont2 = document.createElement("div");
-  //console.log("txParts1",htmlString)
-  // Iterate through each text part and find matching elements
-  textParts.forEach(textPart => {
-    // Trim the text part to ensure accurate matching
-    const trimmedTextPart = textPart.trim();
-
-    // Query the document for elements containing the text part
-    
-    const matchingElements = Array.from(document.querySelectorAll(`*`)).filter(e=>e.textContent===trimmedTextPart);
-    // Append each matching element to the container
-    matchingElements.forEach(element => {
-      container.appendChild(element.cloneNode(true));
-    });
-  });
-
-  // Serialize the container to get the new HTML string
-  const newHtmlString = container.outerHTML;
-  return newHtmlString;
-}
-
-
-function convertTextToHTML(text, originalHTML) {
-  // Split the text into paragraphs by multiple newlines first, then by single newlines
-  const paragraphs = text.split(/\n{2,}/).flatMap(paragraph => paragraph.split('\n'));
-
-  // Initialize an array to hold HTML elements
-  let htmlElements = [];
-
-  paragraphs.forEach(paragraph => {
-    if (paragraph.trim() === '') {
-      // Skip empty lines
-      return;
+const trySavingPdf = async (timestamp, safeFileName, page) => {
+    try {
+        const pdfFilename = `${timestamp}-${safeFileName}.pdf`;
+        const pdfPath = path.join(TEMP_DIR, pdfFilename);
+        
+        await page.pdf({ path: pdfPath });
+        
+        await myBucket.upload(pdfPath, { destination: pdfFilename });
+        return pdfFilename;
+    } catch (e) {
+        console.log(e);
+        return e.message;
     }
-
-    // Check if the paragraph is short
-    if (paragraph.length < 100) {
-      // Find URLs in the original HTML
-      const urls = findURLForText(paragraph, originalHTML);
-      // If URLs were found, create multiple anchor elements wrapped in <strong>
-      if (urls.length > 0) {
-        urls.forEach(url => {
-          htmlElements.push(`<strong><a href="${url}">${paragraph}</a></strong>`);
-        });
-      } else {
-        // If no URLs found, just bold the paragraph without a link
-        htmlElements.push(`<strong>${paragraph}</strong>`);
-      }
-    } else {
-      // Wrap longer paragraphs in <p> tags
-      htmlElements.push(`<p>${paragraph}</p>`);
-    }
-  });
-
-  // Join all HTML elements into a single string, wrapped in a div
-  return `<div>${htmlElements.join('')}</div>`;
 }
 
-
-function findURLForText(text, originalHTML) {
-  // Parse the original HTML using JSDOM
-  const { JSDOM } = require("jsdom");
-  const dom = new JSDOM(originalHTML);
-  const doc = dom.window.document;
-
-  // Use querySelectorAll to find all anchor tags that contain the exact text
-  const anchors = [...doc.querySelectorAll('a')];
-
-  // Filter anchors with the exact text and map to their href attributes
-  const urls = anchors.filter(anchor => anchor.textContent.trim() === text)
-                     .map(anchor => anchor.getAttribute('href'));
-
-  // Return the array of URLs, or an empty array if no matching anchors are found
-  return urls.length > 0 ? urls : ['#'];
-}
-
-
-
-const trySavingPdf =async(timestamp,domain,page)=>{
-          try{
-          const pdfPath = `${timestamp}-${domain}.pdf`;
-          await page.pdf({ path: pdfPath});
-          await myBucket.upload(pdfPath, { destination: pdfPath });
-          return pdfPath
-          }catch(e){
-            console.log(e);
-            return e.message;
-          }
-}
-
-
-
-/*async function extractReadableData(htmlString) {
+function extractText(htmlString) {
+    // Parse the HTML string with JSDOM
     const dom = new JSDOM(htmlString);
     const document = dom.window.document;
-    let resultText = '';
 
-    function processNode(node) {
-        if (node.nodeType === 1) {  // Element node
-            const tagName = node.tagName.toLowerCase();
-            if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'].includes(tagName)) {
-                resultText += node.textContent + '\n';
-            } else if (tagName === 'table') {
-                const rows = node.rows;
-                for (let i = 0; i < rows.length; i++) {
-                    const cols = rows[i].cells;
-                    for (let j = 0; j < cols.length; j++) {
-                        resultText += cols[j].textContent + '\t';
-                    }
-                    resultText += '\n';
-                }
-            } else if (tagName === 'ul' || tagName === 'ol') {
-                const prevSibling = node.previousElementSibling;
-                const nextSibling = node.nextElementSibling;
-                if (prevSibling && prevSibling.tagName.toLowerCase() === 'p' ||
-                    nextSibling && nextSibling.tagName.toLowerCase() === 'p') {
-                    const items = node.querySelectorAll('li');
-                    items.forEach(item => {
-                        resultText += '- ' + item.textContent + '\n';
-                    });
-                }
-            }
-            // Recur for each child node
-            for (let child of node.childNodes) {
-                processNode(child);
-            }
+    // Define the tag names to extract text from
+    const tags = ["div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "table"];
+
+    // Collect text from the specified elements
+    let extractedText = "";
+    tags.forEach(tag => {
+        const elements = document.querySelectorAll(tag);
+        elements.forEach(element => {
+            extractedText += element.textContent + "\n"; // Append text with a newline for readability
+        });
+    });
+
+    return extractedText.trim();
+}
+
+async function extractInformation(htmlString, innerTextString) {
+    const dom = new JSDOM(htmlString);
+    const document = dom.window.document;
+    const extractedHtmlElements = [];
+    const innerN = innerTextString;
+
+    document.querySelectorAll("img, video, style, script, input, button, .dbg-query, #privacy_overview, #strict-necessary-cookies, .moove-gdpr-strict-warning-message, .moove-gdpr-tab-main-content, .moove-gdpr-strict-secondary-warning-message").forEach((e) => { e.remove(); })
+
+    // Function to handle table extraction
+    function handleTable(table) {
+        const tableText = table.textContent;
+        if (innerTextString.includes(tableText)) {
+            extractedHtmlElements.push(table.textContent);
+            innerTextString = innerTextString.replace(tableText, '');
         }
     }
 
-    processNode(document.body);
-    return resultText;
-}*/
+    // Function to handle generic element extraction (headings, paragraphs, lists)
+    function handleElement(element) {
+        const elementText = element.textContent;
+        if (innerTextString.includes(elementText)) {
+            extractedHtmlElements.push(element.outerHTML);
+            innerTextString = innerTextString.replace(elementText, '');
+        }
+    }
+    // Iterate through all headings, paragraphs, lists, and tables
+    const elements = document.querySelectorAll(" h1, h2, h3, h4, h5, h6, p, p ul, p ol, table");
+    elements.forEach((ele) => {
+        ele.removeAttribute('style');  // Remove inline styles
+        ele.removeAttribute('class');
+        let trimmedInnerHTML = ele.innerHTML.trim();
+        ele.innerHTML = trimmedInnerHTML;
+        updateFontSize(ele, ele.tagName.toLowerCase())
+    })
 
-// Usage:
-// Assume htmlString contains the innerHTML of the body of the webpage
-// const htmlString = "<body>...</body>";
-// extractReadableData(htmlString).then(text => console.log(text));
+    for (const element of elements) {
+        if (element.tagName.toLowerCase() === 'table') {
+            handleTable(element);
+        } else {
+            handleElement(element);
+        }
+    }
 
-function extractText(htmlString) {
-  // Parse the HTML string with JSDOM
-  const dom = new JSDOM(htmlString);
-  const document = dom.window.document;
-
-  // Define the tag names to extract text from
-  const tags = ["div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "table"];
-
-  // Collect text from the specified elements
-  let extractedText = "";
-  tags.forEach(tag => {
-    const elements = document.querySelectorAll(tag);
-    elements.forEach(element => {
-      extractedText += element.textContent + "\n"; // Append text with a newline for readability
-    });
-  });
-
-  return extractedText.trim();
+    return {
+        innerTextData: innerN,
+        htmlString: extractedHtmlElements.join(''),
+    };
 }
-
-
-
-async function extractInformation(htmlString, innerTextString) {
-  const dom = new JSDOM(htmlString);
-  const document = dom.window.document;
-  const extractedHtmlElements = [];
-  const innerN = innerTextString;
-  
-  document.querySelectorAll("img, video, style, script, input, button, .dbg-query, #privacy_overview, #strict-necessary-cookies, .moove-gdpr-strict-warning-message, .moove-gdpr-tab-main-content, .moove-gdpr-strict-secondary-warning-message").forEach((e)=>{e.remove();})
-  
-  // Function to handle table extraction
-  function handleTable(table) {
-    const tableText = table.textContent;
-    if (innerTextString.includes(tableText)) {
-      extractedHtmlElements.push(table.textContent);
-      innerTextString = innerTextString.replace(tableText, '');
-    }
-  }
-
-  // Function to handle generic element extraction (headings, paragraphs, lists)
-  function handleElement(element) {
-    const elementText = element.textContent;
-    if (innerTextString.includes(elementText)) {
-      extractedHtmlElements.push(element.outerHTML);
-      innerTextString = innerTextString.replace(elementText, '');
-    }
-  }
-  // Iterate through all headings, paragraphs, lists, and tables
-  const elements = document.querySelectorAll(" h1, h2, h3, h4, h5, h6, p, p ul, p ol, table");
-  elements.forEach((ele)=>{
-    ele.removeAttribute('style');  // Remove inline styles
-    ele.removeAttribute('class'); 
-    let trimmedInnerHTML = ele.innerHTML.trim();
-    ele.innerHTML = trimmedInnerHTML;
-    updateFontSize(ele, ele.tagName.toLowerCase())
-  })
-
-
-
-  for (const element of elements) {
-    if (element.tagName.toLowerCase() === 'table') {
-      handleTable(element);
-    } else {
-      handleElement(element);
-    }
-  }
-
-
-
-  return {
-    innerTextData: innerN,
-    htmlString: extractedHtmlElements.join(''),
-  };
-}
-
 
 function updateFontSize(element, query) {
-  let fontSize;
+    let fontSize;
 
-  switch (query) {
-      case "h1":
-          fontSize = "18px";
-          break;
-      case "h2":
-      case "h3":
-          fontSize = "16px";
-          break;
-      case "h4":
-          fontSize = "14px";
-          break;
-      case "h5":
-          fontSize = "13px";
-          break;
-      case "h6":
-          fontSize = "13px";
-          break;
-      case "p":
-      case "p ul":
-      case "p ol":
-          fontSize = "12px";
-          break;
-      default:
-          console.error("Unknown query:", query);
-          return;
-  }
-  
-  element.style.fontSize = fontSize;
+    switch (query) {
+        case "h1":
+            fontSize = "18px";
+            break;
+        case "h2":
+        case "h3":
+            fontSize = "16px";
+            break;
+        case "h4":
+            fontSize = "14px";
+            break;
+        case "h5":
+            fontSize = "13px";
+            break;
+        case "h6":
+            fontSize = "13px";
+            break;
+        case "p":
+        case "p ul":
+        case "p ol":
+            fontSize = "12px";
+            break;
+        default:
+            console.error("Unknown query:", query);
+            return;
+    }
 
+    element.style.fontSize = fontSize;
 }
-
-
-
-
 
 module.exports = webscrap;
