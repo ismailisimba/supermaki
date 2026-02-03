@@ -33,12 +33,16 @@
         </div>
 
         <div class="form-group">
-            <label for="schoolYear">Year of School</label>
+            <label for="schoolYear">School Level</label>
             <select id="schoolYear" name="schoolYear" required>
-                <option value="preschool">Preschool</option>
-                <option value="primary">Primary</option>
+                <option value="preschool">Preschool (TPS, PS, MS, GS)</option>
+                <option value="primary">Primary School (CP - CM2)</option>
+                <option value="middle">Middle School (6e - 3e)</option>
+                <option value="high">High School (2nde - Terminale)</option>
             </select>
         </div>
+
+        
 
         <div class="form-group">
             <label for="nationality">Nationality Category</label>
@@ -71,6 +75,7 @@
 
         <button type="submit" id="submitBtn">Generate Pro-forma Invoice</button>
     </form>
+    
 </div>
 
 <script>
