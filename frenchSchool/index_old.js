@@ -57,7 +57,7 @@ function calculateFrenchSchoolFees(data) {
         registrationFee = 0;
     }
 
-    // 3. Calculate Discount
+    // 3. Calculate Discount (5% on tuition only for 3rd child+)
     let discountAmount = 0;
     if (data.existingChildren >= 2) {
         discountAmount = tuition * 0.05;
@@ -90,35 +90,42 @@ function generateInvoiceHTML(data, calcs) {
     <html>
     <head>
         <style>
-            /* FONT UPDATE: Switched from Montserrat to Open Sans */
-            @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
+            @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
             
             body { 
-                /* FONT UPDATE: Switched from Montserrat to Open Sans */
-                font-family: 'Open Sans', Helvetica, Arial, sans-serif; 
+                font-family: 'Montserrat', Helvetica, Arial, sans-serif; 
                 color: #444; 
+                /* Removed padding here to let PDF margins handle the edge */
                 padding: 0; 
                 margin: 0;
                 -webkit-print-color-adjust: exact; 
-                font-size: 13px;
+                font-size: 13px; /* Slightly reduced base font size to fit better with smaller margins */
             }
             
+            /* Header Section */
             .header-logos { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-            .school-title { text-align: center; color: #0d1d3c; margin-bottom: 5px; }
-            .school-title h1 { margin: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+            .logo-placeholder { 
+                width: 150px; height: 70px; background: #f0f0f0; display: flex; 
+                align-items: center; justify-content: center; color: #999; font-size: 10px; border: 1px dashed #ccc;
+            }
+            
+            .school-title { text-align: center; color: #3458A5; margin-bottom: 5px; }
+            .school-title h1 { margin: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
             
             .invoice-title { 
-                text-align: center; font-size: 24px; color: #5C9BD5; margin: 15px 0; font-weight: 400; 
+                text-align: center; font-size: 24px; color: #6FA8DC; margin: 15px 0; font-weight: 300; 
                 text-transform: uppercase; border-bottom: 1px solid #ddd; padding-bottom: 10px;
             }
             
+            /* Client Info */
             .client-box { 
                 background: #f9fbfd; padding: 15px; border-radius: 6px; margin-bottom: 20px; 
-                display: flex; justify-content: space-between; border-left: 5px solid #002395;
+                display: flex; justify-content: space-between; border-left: 5px solid #3458A5;
             }
             .client-col h3 { margin-top: 0; margin-bottom: 5px; font-size: 11px; color: #888; text-transform: uppercase; }
             .client-col p { margin: 2px 0; font-weight: 600; font-size: 13px; }
 
+            /* Fee Table */
             .fee-container { margin-bottom: 20px; border: 1px solid #eee; border-radius: 6px; overflow: hidden; }
             
             .category-header { 
@@ -132,29 +139,34 @@ function generateInvoiceHTML(data, calcs) {
 
             table { width: 100%; border-collapse: collapse; }
             td, th { padding: 10px 15px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
-            th { text-align: left; background-color: #fafafa; color: #666; font-size: 11px; text-transform: uppercase; font-weight: 600; }
+            th { text-align: left; background-color: #fafafa; color: #666; font-size: 11px; text-transform: uppercase; }
             .col-amount { text-align: right; font-weight: 600; }
             
             .row-subtotal { background-color: #fcfcfc; color: #555; }
             .row-total { background-color: ${calcs.color}; color: white; font-size: 15px; font-weight: bold; }
             .row-total td { border: none; }
 
+            /* One Time Fees */
             .one-time-section { margin-top: 20px; margin-bottom: 25px; }
-            .one-time-header { font-size: 13px; font-weight: bold; color: #002395; text-transform: uppercase; margin-bottom: 8px; border-bottom: 2px solid #002395; display: inline-block; }
+            .one-time-header { font-size: 13px; font-weight: bold; color: #3458A5; text-transform: uppercase; margin-bottom: 8px; border-bottom: 2px solid #3458A5; display: inline-block; }
 
             .notes { font-size: 10px; color: #777; margin-top: 30px; background: #f5f5f5; padding: 12px; border-radius: 5px; }
             .notes ul { margin: 0; padding-left: 20px; }
             .notes li { margin-bottom: 3px; }
 
-            .footer-contact { margin-top: 20px; text-align: center; font-size: 11px; color: #002395; }
+            .footer-contact { margin-top: 20px; text-align: center; font-size: 11px; color: #3458A5; }
         </style>
     </head>
 
     <body>
         
+        <!-- Header -->
         <div class="header-logos">
+            <!-- Replace contents with <img> tags -->
+            
             <img src="https://www.frenchschooltanzania.org/wp-content/uploads/2017/10/Logo-250.png" style="height: 60px;">
             <img src="https://www.frenchschooltanzania.org/wp-content/uploads/2017/10/logo_aefe_ec-300x154.png" style="height: 60px;">
+            
         </div>
 
         <div class="school-title">
@@ -163,12 +175,13 @@ function generateInvoiceHTML(data, calcs) {
         </div>
 
         <div class="invoice-title">
-            Fee Estimate <span style="font-size: 14px; color: #999;">2025 - 2026</span>
+            Pro-forma Invoice <span style="font-size: 14px; color: #999;">2025 - 2026</span>
         </div>
 
+        <!-- Client Info -->
         <div class="client-box">
             <div class="client-col">
-                <h3>Estimate For</h3>
+                <h3>Bill To</h3>
                 <p>${data.parentName}</p>
                 <p style="font-weight: 400;">${data.email}</p>
                 <p style="font-weight: 400;">${data.phone}</p>
@@ -180,6 +193,7 @@ function generateInvoiceHTML(data, calcs) {
             </div>
         </div>
 
+        <!-- Annual Fees Table -->
         <div class="fee-container">
             <div class="category-header">
                 ${calcs.level}
@@ -216,6 +230,7 @@ function generateInvoiceHTML(data, calcs) {
             </table>
         </div>
 
+        <!-- One Time Fees -->
         <div class="one-time-section">
             <div class="one-time-header">Registration & Deposit</div>
             <table>
@@ -232,17 +247,19 @@ function generateInvoiceHTML(data, calcs) {
             </table>
         </div>
 
-        <div style="background: #002395; color: white; padding: 12px 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-size: 14px; text-transform: uppercase;">Total Estimated Amount</div>
+        <!-- Grand Total -->
+        <div style="background: #3458A5; color: white; padding: 12px 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 14px; text-transform: uppercase;">Total Payable Amount</div>
             <div style="font-size: 22px; font-weight: bold;">${fmt(calcs.grandTotal)}</div>
         </div>
 
+        <!-- Notes Footer -->
         <div class="notes">
-            <strong>Terms & Notes:</strong>
+            <strong>Payment Terms & Notes:</strong>
             <ul>
-                <li>This document is an estimate and is not a formal invoice. Official invoices will be issued upon registration.</li>
                 <li><strong>Deposit:</strong> Payable at enrollment (refundable).</li>
-                <li><strong>Sibling Discount:</strong> 5% on tuition fees for the third and subsequent children registered (included above if applicable).</li>
+                <li><strong>Discount:</strong> 5% on tuition fees if annual invoice is paid before June 30th.</li>
+                <li><strong>Sibling Discount:</strong> 5% on tuition fees of the third child registered (included above if applicable).</li>
                 <li><strong>Global Package:</strong> For embassies and companies, a customized invoice including extra options can be requested.</li>
                 <li>Prices are in TZS (Tanzanian Shillings).</li>
             </ul>
@@ -286,6 +303,7 @@ function pdfFunc(htmlContent, options = null) {
             const pdfBuffer = await page.pdf({
                 format: 'A4',
                 printBackground: true,
+                // UPDATED MARGINS: 10mm (1cm) on all sides
                 margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
             });
 

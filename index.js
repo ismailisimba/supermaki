@@ -136,7 +136,7 @@ app.post("/french-school-pdf", (req, res, next) => {
 
             // 2. Set all necessary headers for a file download.
             res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', 'attachment; filename="Proforma_Invoice.pdf"');
+            res.setHeader('Content-Disposition', 'attachment; filename="Fee_Estimate.pdf"');
             res.setHeader('Content-Length', pdfBuffer.length);
 
             // 3. Use res.end() for sending raw buffers to prevent any further processing.
